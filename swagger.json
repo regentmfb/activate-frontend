@@ -1,0 +1,2514 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Activate API",
+    "version": "1.0.0",
+    "description": "API Documentation for the Activate account opening and compliance system"
+  },
+  "basePath": "/api/v1",
+  "paths": {
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get current staff profile using Orchestro SSO token",
+        "responses": {
+          "200": {
+            "description": "Staff profile retrieved successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "staffId": { "type": "string", "example": "STF001" },
+                "staffName": { "type": "string", "example": "John Doe" },
+                "email": { "type": "string", "example": "j.doe@regentmfb.com" },
+                "role": { "type": "string", "example": "RM" },
+                "active": { "type": "boolean", "example": true },
+                "permissions": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "example": ["activate.account.open"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/auth/validate": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Validate an Orchestro token from Authorization header",
+        "responses": {
+          "200": {
+            "description": "Token is valid, returns profile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "staffId": { "type": "string", "example": "STF001" },
+                "staffName": { "type": "string", "example": "John Doe" },
+                "role": { "type": "string", "example": "RM" }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is malformed or expired"
+          }
+        }
+      }
+    },
+    "/auth/permissions": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get permissions for the current staff member",
+        "responses": {
+          "200": {
+            "description": "List of permissions returned",
+            "schema": {
+              "type": "array",
+              "items": { "type": "string" },
+              "example": ["activate.account.open", "activate.customer.reveal_sensitive"]
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          }
+        }
+      }
+    },
+    "/staff/hierarchy/me": {
+      "get": {
+        "tags": ["Staff & Hierarchy"],
+        "summary": "Get current staff hierarchy context",
+        "responses": {
+          "200": {
+            "description": "Staff hierarchy retrieved successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "staffId": { "type": "string", "example": "STF001" },
+                    "staffName": { "type": "string", "example": "John Doe" }
+                  }
+                },
+                "managedMembers": {
+                  "type": "array",
+                  "items": { "type": "object" },
+                  "example": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/staff/team-members": {
+      "get": {
+        "tags": ["Staff & Hierarchy"],
+        "summary": "Get list of team members under current staff",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team members list retrieved",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "staffId": { "type": "string", "example": "STF002" },
+                  "staffName": { "type": "string", "example": "Jane Smith" },
+                  "role": { "type": "string", "example": "RM" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/activate/activity-logs": {
+      "get": {
+        "tags": ["RM Activity Logs"],
+        "summary": "Get RM activity logs (paginated, with optional filters)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          },
+          {
+            "name": "staffId",
+            "in": "query",
+            "description": "Filter activity logs by specific Staff ID / RM ID",
+            "type": "string",
+            "example": "b5c6f66b-88f8-42c3-b929-e01f4d00f497"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Filter by specific log action (e.g. INITIATED_ACCOUNT_OPENING)",
+            "type": "string",
+            "example": "INITIATED_ACCOUNT_OPENING"
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "description": "Filter by specific application module (e.g. ACCOUNT_OPENING)",
+            "type": "string",
+            "example": "ACCOUNT_OPENING"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of activity logs retrieved successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "7b02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                      "staffId": { "type": "string", "example": "b5c6f66b-88f8-42c3-b929-e01f4d00f497" },
+                      "staffName": { "type": "string", "example": "OLADOSU ELIJAH ADEWALE" },
+                      "action": { "type": "string", "example": "INITIATED_ACCOUNT_OPENING" },
+                      "module": { "type": "string", "example": "ACCOUNT_OPENING" },
+                      "details": {
+                        "type": "object",
+                        "properties": {
+                          "requestId": { "type": "string", "example": "req-uuid" }
+                        }
+                      },
+                      "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                    }
+                  }
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "number", "example": 1 },
+                    "page": { "type": "number", "example": 1 },
+                    "limit": { "type": "number", "example": 10 },
+                    "totalPages": { "type": "number", "example": 1 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/security/reveal-token": {
+      "post": {
+        "tags": ["Sensitive Data Reveal & Security"],
+        "summary": "Verify PIN and get a 20-minute token to reveal sensitive data",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "pin": { "type": "string", "example": "4321" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PIN verified successfully, reveal token issued.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "revealToken": { "type": "string", "example": "rev_jcf94x2iop" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid PIN or staff ID mismatch"
+          }
+        }
+      }
+    },
+    "/activate/customers/{id}/reveal-biodata": {
+      "get": {
+        "tags": ["Sensitive Data Reveal & Security"],
+        "summary": "Reveal unmasked customer sensitive identity biodata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer unmasked biodata retrieved successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "firstName": { "type": "string", "example": "John" },
+                    "middleName": { "type": "string", "example": "James" },
+                    "lastName": { "type": "string", "example": "Doe" },
+                    "phoneNumber": { "type": "string", "example": "08012345678" },
+                    "email": { "type": "string", "example": "john.doe@example.com" },
+                    "address": { "type": "string", "example": "123 Broad Street, Lagos" },
+                    "bvn": { "type": "string", "example": "22222222289" },
+                    "nin": { "type": "string", "example": "10020030045" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, missing, or expired X-Reveal-Token"
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/reveal-balance": {
+      "get": {
+        "tags": ["Sensitive Data Reveal & Security"],
+        "summary": "Reveal real-time unmasked account balance from CBA",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time account balance fetched.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "accountNumber": { "type": "string", "example": "1012345678" },
+                    "ledgerBalance": { "type": "number", "example": 250000 },
+                    "availableBalance": { "type": "number", "example": 245000 }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, missing, or expired X-Reveal-Token"
+          }
+        }
+      }
+    },
+    "/identity/start": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Start BVN or NIN verification (Step 1)",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "example": "BVN" },
+                "identifier": { "type": "string", "example": "22222222222" },
+                "firstName": { "type": "string", "example": "Bunch" },
+                "lastName": { "type": "string", "example": "Dillon" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification session started and validation code generation enqueued.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "verificationId": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "status": { "type": "string", "example": "PENDING" },
+                    "message": { "type": "string", "example": "Identity verification started and enqueued successfully." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/verify-code": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Input OTP code received by customer (Step 2)",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verificationId": { "type": "string", "example": "verification-uuid-here" },
+                "code": { "type": "string", "example": "123456" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP code validation and biodata extraction enqueued.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "verificationId": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "status": { "type": "string", "example": "OTP_VERIFIED" },
+                    "message": { "type": "string", "example": "Verification code submitted to the background verification queue." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/confirm-biodata": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Confirm customer biodata details and additional details like email, second phone, NIN and address (Step 3)",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verificationId": { "type": "string", "example": "verification-uuid-here" },
+                "email": { "type": "string", "example": "customer@example.com" },
+                "secondPhoneNumber": { "type": "string", "example": "08012345678" },
+                "ninNumber": { "type": "string", "example": "11111111111" },
+                "residentialAddress": { "type": "string", "example": "123 Main Street, Lagos" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Biodata details and additional information successfully confirmed.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "verificationType": { "type": "string", "example": "BVN" },
+                    "status": { "type": "string", "example": "BIODATA_CONFIRMED" },
+                    "verifiedFields": {
+                      "type": "object",
+                      "properties": {
+                        "firstName": { "type": "string", "example": "John" },
+                        "middleName": { "type": "string", "example": "James" },
+                        "lastName": { "type": "string", "example": "Doe" },
+                        "phoneNumber": { "type": "string", "example": "08012345678" },
+                        "email": { "type": "string", "example": "customer@example.com" },
+                        "secondPhoneNumber": { "type": "string", "example": "08012345678" },
+                        "nin": { "type": "string", "example": "11111111111" },
+                        "address": { "type": "string", "example": "123 Broad Street, Lagos" },
+                        "dateOfBirth": { "type": "string", "example": "1990-01-01" },
+                        "gender": { "type": "string", "example": "MALE" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/picture-verification": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Submit customer field photo for face match (Step 3)",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verificationId": { "type": "string", "example": "verification-uuid-here" },
+                "identifier": { "type": "string", "example": "22222222222" },
+                "firstName": { "type": "string", "example": "Bunch" },
+                "lastName": { "type": "string", "example": "Dillon" },
+                "imageBase64": { "type": "string", "example": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Picture verification check enqueued.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "verificationId": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "status": { "type": "string", "example": "PROCESSING" },
+                    "message": { "type": "string", "example": "Facial matching check enqueued for background verification." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/manual-mode": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Switch to manual verification mode if auto fails",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verificationId": { "type": "string", "example": "verification-uuid-here" },
+                "reason": { "type": "string", "example": "Customer unable to access iGree link due to poor network" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manual fallback mode activated and RM task spawned.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "verificationType": { "type": "string", "example": "BVN" },
+                    "identifierHash": { "type": "string", "example": "d5f5...2ea5" },
+                    "identifierMasked": { "type": "string", "example": "222******89" },
+                    "status": { "type": "string", "example": "MANUAL_MODE_REQUIRED" },
+                    "provider": { "type": "string", "example": "QOREID" },
+                    "manualModeReason": { "type": "string", "example": "OTP not received by customer after multiple retries." },
+                    "initiatedBy": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "1" },
+                        "staffName": { "type": "string", "example": "Relationship Manager Name" },
+                        "role": { "type": "string", "example": "RM" }
+                      }
+                    },
+                    "activateRequestId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/{id}/approve-manual": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Operations manually verifies and approves identity verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identity verification session record UUID",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manual verification approved successfully."
+          }
+        }
+      }
+    },
+    "/identity/{id}/reject-manual": {
+      "post": {
+        "tags": ["Identity Verification"],
+        "summary": "Operations manually rejects/fails identity verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identity verification session record UUID",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "reason": { "type": "string", "example": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manual verification rejected successfully."
+          }
+        }
+      }
+    },
+    "/identity/manual": {
+      "get": {
+        "tags": ["Identity Verification"],
+        "summary": "Fetch manual identity verification sessions filtered by status (PENDING, APPROVED, REJECTED)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by pending, approved, or rejected. Defaults to pending.",
+            "type": "string",
+            "default": "pending"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of manual verification sessions."
+          }
+        }
+      }
+    },
+    "/identity/{id}": {
+      "get": {
+        "tags": ["Identity Verification"],
+        "summary": "Get current status and biodata details of a verification session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Identity verification session record retrieved.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "v_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "verificationType": { "type": "string", "example": "BVN" },
+                    "identifierHash": { "type": "string", "example": "d5f5...2ea5" },
+                    "identifierMasked": { "type": "string", "example": "222******89" },
+                    "status": { "type": "string", "example": "BIODATA_RETRIEVED" },
+                    "provider": { "type": "string", "example": "QOREID" },
+                    "verifiedFields": {
+                      "type": "object",
+                      "properties": {
+                        "firstName": { "type": "string", "example": "John" },
+                        "middleName": { "type": "string", "example": "James" },
+                        "lastName": { "type": "string", "example": "Doe" },
+                        "phoneNumber": { "type": "string", "example": "08012345678" },
+                        "email": { "type": "string", "example": "john.doe@example.com" },
+                        "dateOfBirth": { "type": "string", "example": "1990-01-01" },
+                        "gender": { "type": "string", "example": "MALE" },
+                        "address": { "type": "string", "example": "123 Broad Street, Lagos" }
+                      }
+                    },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/tasks/my": {
+      "get": {
+        "tags": ["Task Bank"],
+        "summary": "Get current RM task list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tasks assigned to the Relationship Manager.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "t_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                      "activateRequestId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                      "customerId": { "type": "string", "example": "c_john_doe" },
+                      "assignedTo": {
+                        "type": "object",
+                        "properties": {
+                          "staffId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                          "staffName": { "type": "string", "example": "Regent MFB" }
+                        }
+                      },
+                      "taskType": { "type": "string", "example": "REJECTED_ACCOUNT_CORRECTION" },
+                      "title": { "type": "string", "example": "Rejected Account opening: Needs correction" },
+                      "description": { "type": "string", "example": "Request REQ-20260518-0001 was rejected by Ops. Reason: Customer picture is blurred." },
+                      "status": { "type": "string", "example": "PENDING" },
+                      "createdAt": { "type": "string", "example": "2026-05-18T10:15:00.209Z" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/tasks/pending-count": {
+      "get": {
+        "tags": ["Task Bank"],
+        "summary": "Get the count of pending tasks assigned to the logged-in staff",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved pending tasks count."
+          }
+        }
+      }
+    },
+    "/activate/tasks/{id}": {
+      "get": {
+        "tags": ["Task Bank"],
+        "summary": "Get details of a specific task by its UUID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the task to retrieve",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task details successfully retrieved."
+          },
+          "404": {
+            "description": "Task not found."
+          }
+        }
+      }
+    },
+    "/activate/tasks/{id}/complete": {
+      "post": {
+        "tags": ["Task Bank"],
+        "summary": "Mark a task as completed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task marked completed successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "t_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "activateRequestId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "customerId": { "type": "string", "example": "c_john_doe" },
+                    "assignedTo": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                        "staffName": { "type": "string", "example": "Regent MFB" }
+                      }
+                    },
+                    "taskType": { "type": "string", "example": "REJECTED_ACCOUNT_CORRECTION" },
+                    "title": { "type": "string", "example": "Rejected Account opening: Needs correction" },
+                    "description": { "type": "string", "example": "Request REQ-20260518-0001 was rejected by Ops. Reason: Customer picture is blurred." },
+                    "status": { "type": "string", "example": "COMPLETED" },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:15:00.209Z" },
+                    "completedAt": { "type": "string", "example": "2026-05-18T10:30:00.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/tasks/{id}/cancel": {
+      "post": {
+        "tags": ["Task Bank"],
+        "summary": "Cancel a task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task marked cancelled successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "t_7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "activateRequestId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "customerId": { "type": "string", "example": "c_john_doe" },
+                    "assignedTo": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                        "staffName": { "type": "string", "example": "Regent MFB" }
+                      }
+                    },
+                    "taskType": { "type": "string", "example": "REJECTED_ACCOUNT_CORRECTION" },
+                    "title": { "type": "string", "example": "Rejected Account opening: Needs correction" },
+                    "description": { "type": "string", "example": "Request REQ-20260518-0001 was rejected by Ops. Reason: Customer picture is blurred." },
+                    "status": { "type": "string", "example": "CANCELLED" },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:15:00.209Z" },
+                    "cancelledAt": { "type": "string", "example": "2026-05-18T10:30:00.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts": {
+      "post": {
+        "tags": ["Account Opening"],
+        "summary": "Initiate savings/current account opening request (Step 1)",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verificationId": { "type": "string", "example": "verification-uuid-here" },
+                "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                "accountType": { "type": "string", "example": "SAVINGS" },
+                "clientDraftId": { "type": "string", "example": "client-draft-12345" },
+                "idempotencyKey": { "type": "string", "example": "TX-1779199422852-88928" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account opening request created successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "clientDraftId": { "type": "string", "example": "draft-9921" },
+                    "idempotencyKey": { "type": "string", "example": "idem-key-8812" },
+                    "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                    "accountType": { "type": "string", "example": "SAVINGS" },
+                    "tier": { "type": "string", "example": "TIER_1" },
+                    "status": { "type": "string", "example": "SUBMITTED" },
+                    "workflowStage": { "type": "string", "example": "T1_AUTO_CREATION" },
+                    "rm": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "1" },
+                        "staffName": { "type": "string", "example": "Relationship Manager Name" },
+                        "email": { "type": "string", "example": "rm@regentmfb.com" },
+                        "role": { "type": "string", "example": "RM" }
+                      }
+                    },
+                    "branchId": { "type": "string", "example": "BR001" },
+                    "verificationMode": { "type": "string", "example": "AUTO" },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" },
+                    "submittedAt": { "type": "string", "example": "2026-05-18T10:00:00.300Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/cancel": {
+      "post": {
+        "tags": ["Account Opening"],
+        "summary": "Cancel and restart account opening request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account request cancelled successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "status": { "type": "string", "example": "CANCELLED" },
+                    "cancelledAt": { "type": "string", "example": "2026-05-18T10:10:00.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/retry": {
+      "post": {
+        "tags": ["Account Opening"],
+        "summary": "Retry a failed account request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Failed request successfully scheduled for retry.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Retry job queued successfully" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/my": {
+      "get": {
+        "tags": ["Account Opening"],
+        "summary": "Get account opening requests for currently authenticated RM",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of account requests initiated by the RM.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                      "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                      "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                      "accountType": { "type": "string", "example": "SAVINGS" },
+                      "status": { "type": "string", "example": "COMPLETED" },
+                      "bankOneAccountNumber": { "type": "string", "example": "1012345678" },
+                      "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/all": {
+      "get": {
+        "tags": ["Account Opening"],
+        "summary": "Get all account requests across the system (paginated)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all account requests returned successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                      "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                      "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                      "accountType": { "type": "string", "example": "SAVINGS" },
+                      "status": { "type": "string", "example": "COMPLETED" },
+                      "bankOneAccountNumber": { "type": "string", "example": "1012345678" },
+                      "rm": {
+                        "type": "object",
+                        "properties": {
+                          "staffId": { "type": "string", "example": "1" },
+                          "staffName": { "type": "string", "example": "Relationship Manager Name" },
+                          "role": { "type": "string", "example": "RM" }
+                        }
+                      },
+                      "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/check-existence": {
+      "get": {
+        "tags": ["Account Opening"],
+        "summary": "Check if an account of a specific type already exists or is in progress for the customer",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "query",
+            "required": true,
+            "description": "BVN or NIN identifier (11 digits)",
+            "type": "string",
+            "example": "22222222222"
+          },
+          {
+            "name": "accountType",
+            "in": "query",
+            "required": true,
+            "description": "Account type (SAVINGS or CURRENT)",
+            "type": "string",
+            "example": "SAVINGS"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Availability check response.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "exists": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "Account type is available for onboarding." }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}": {
+      "get": {
+        "tags": ["Account Opening"],
+        "summary": "Get details of an account request by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed account opening request records.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                    "accountType": { "type": "string", "example": "SAVINGS" },
+                    "status": { "type": "string", "example": "COMPLETED" },
+                    "rm": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "1" },
+                        "staffName": { "type": "string", "example": "Relationship Manager Name" }
+                      }
+                    },
+                    "bankOneCustomerId": { "type": "string", "example": "CUST-10029" },
+                    "bankOneAccountNumber": { "type": "string", "example": "1012345678" },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/accounts/enquiry/{accountNumber}": {
+      "get": {
+        "tags": ["Account Opening"],
+        "summary": "Enquiry real-time details of an account from BankOne",
+        "parameters": [
+          {
+            "name": "accountNumber",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": false,
+            "description": "A valid active PIN Reveal session token to view unmasked balances and sensitive identifiers",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time account details returned."
+          }
+        }
+      }
+    },
+    "/activate/lien/active": {
+      "get": {
+        "tags": ["Account Lien Control"],
+        "summary": "Get a list of all bank accounts currently on an active compliance lien hold",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of active liens successfully retrieved."
+          }
+        }
+      }
+    },
+    "/activate/lien": {
+      "post": {
+        "tags": ["Account Lien Control"],
+        "summary": "Place a hold/lien on a customer account — Requires PIN Verification",
+        "parameters": [
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": true,
+            "description": "A valid active PIN Reveal token acquired from verification",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accountNumber": { "type": "string", "example": "1012345678" },
+                "amount": { "type": "number", "example": 5000 },
+                "reason": { "type": "string", "example": "Suspected duplicate registration / non-compliant coordinates" },
+                "requestId": { "type": "string", "example": "975fb728-380d-4bc1-8f60-84255dea9ff3" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hold applied successfully to the customer account on the Core Banking Application.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "reference": { "type": "string", "example": "LIEN-REF-9921" },
+                    "message": { "type": "string", "example": "Lien placed successfully on BankOne CBA" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, missing, or expired X-Reveal-Token"
+          }
+        }
+      }
+    },
+    "/activate/lien/{accountNumber}/release": {
+      "post": {
+        "tags": ["Account Lien Control"],
+        "summary": "Remove a hold/lien from a customer account — Requires PIN Verification",
+        "parameters": [
+          {
+            "name": "accountNumber",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": true,
+            "description": "A valid active PIN Reveal token acquired from verification",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hold successfully released from the customer account.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Lien removed successfully on BankOne CBA" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, missing, or expired X-Reveal-Token"
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts": {
+      "get": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Get account requests by compliance status (Pending, Reviewed, or Rejected)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter requests by compliance status: pending, reviewed, or rejected. Defaults to pending.",
+            "type": "string",
+            "default": "pending"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compliance status lists successfully returned."
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts/{id}": {
+      "get": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Fetch a compliance review request by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account opening request details retrieved successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "clientDraftId": { "type": "string", "example": "draft-9921" },
+                    "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                    "accountType": { "type": "string", "example": "SAVINGS" },
+                    "status": { "type": "string", "example": "SUBMITTED" },
+                    "workflowStage": { "type": "string", "example": "COMPLIANCE_REVIEW" },
+                    "rm": {
+                      "type": "object",
+                      "properties": {
+                        "staffId": { "type": "string", "example": "1" },
+                        "staffName": { "type": "string", "example": "Relationship Manager Name" }
+                      }
+                    },
+                    "createdAt": { "type": "string", "example": "2026-05-18T10:00:00.209Z" },
+                    "updatedAt": { "type": "string", "example": "2026-05-18T10:00:00.592Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts/{id} (patch)": {
+      "patch": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Allow Ops/RMs to edit and correct erroneous account data before approval",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the account request to edit",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                "accountType": { "type": "string", "example": "SAVINGS" },
+                "firstName": { "type": "string", "example": "JOHN" },
+                "middleName": { "type": "string", "example": "FREDRICK" },
+                "lastName": { "type": "string", "example": "KENNEDY" },
+                "gender": { "type": "string", "example": "Male" },
+                "dateOfBirth": { "type": "string", "example": "2003-06-20" },
+                "phoneNumber": { "type": "string", "example": "08030000000" },
+                "email": { "type": "string", "example": "user@example.com" },
+                "address": { "type": "string", "example": "123 Lekki Phase 1, Lagos" },
+                "bvn": { "type": "string", "example": "22222222222" },
+                "nin": { "type": "string", "example": "11111111111" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully updated compliance info."
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts/{id}/reviewed": {
+      "post": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Approve an account request - Mark reviewed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "comments": { "type": "string", "example": "KYC documents are valid and verified." }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request reviewed and approved.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "status": { "type": "string", "example": "SUBMITTED" },
+                    "workflowStage": { "type": "string", "example": "COMPLETED_REVIEW" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts/{id}/non-compliant": {
+      "post": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Reject an account request - Mark non-compliant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "reason": { "type": "string", "example": "Customer picture is blurred and fails biometric score." }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request marked non-compliant and task bank item created.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                    "requestNumber": { "type": "string", "example": "REQ-20260518-0001" },
+                    "status": { "type": "string", "example": "REJECTED" },
+                    "failureReason": { "type": "string", "example": "Customer official ID card picture is blurred and illegible." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compliance/activate/accounts/{id}/place-lien": {
+      "post": {
+        "tags": ["Compliance Review Workflow"],
+        "summary": "Place a hold/lien on a customer account — Requires PIN Verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "required": true,
+            "description": "A valid active PIN Reveal token acquired from verification",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accountNumber": { "type": "string", "example": "1012345678" },
+                "amount": { "type": "number", "example": 5000 },
+                "reason": { "type": "string", "example": "Suspected duplicate registration / non-compliant coordinates" },
+                "requestId": { "type": "string", "example": "975fb728-380d-4bc1-8f60-84255dea9ff3" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hold applied successfully to the customer account on the Core Banking Application.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "reference": { "type": "string", "example": "LIEN-REF-9921" },
+                    "message": { "type": "string", "example": "Lien placed successfully on BankOne CBA" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, missing, or expired X-Reveal-Token"
+          }
+        }
+      }
+    },
+    "/activate/documents/upload": {
+      "post": {
+        "tags": ["Document Upload"],
+        "summary": "Upload onboarding document to AWS S3 / Local Disk fallback",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "formData",
+            "required": true,
+            "description": "Document or image file buffer",
+            "type": "file"
+          },
+          {
+            "name": "activateRequestId",
+            "in": "formData",
+            "description": "The associated account request UUID (optional if identityVerificationId is provided)",
+            "type": "string"
+          },
+          {
+            "name": "identityVerificationId",
+            "in": "formData",
+            "description": "The associated Identity Verification session UUID (optional if activateRequestId is provided)",
+            "type": "string"
+          },
+          {
+            "name": "customerId",
+            "in": "formData",
+            "description": "The associated customer ID (required for customer-specific assets like Photo and ID)",
+            "type": "string"
+          },
+          {
+            "name": "documentType",
+            "in": "formData",
+            "required": true,
+            "description": "Category of the uploaded asset",
+            "type": "string"
+          },
+          {
+            "name": "source",
+            "in": "formData",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Document uploaded and registered successfully."
+          },
+          "400": {
+            "description": "Invalid upload parameters or file format."
+          },
+          "401": {
+            "description": "Unauthorized PIN verification session required."
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/references": {
+      "post": {
+        "tags": ["Current Account References"],
+        "summary": "Submit referee forms and details for a Current Account opening request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Account opening request UUID",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "documentUrl": { "type": "string", "example": "string" },
+                "references": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "fullName": { "type": "string" },
+                      "bankName": { "type": "string" },
+                      "accountNumber": { "type": "string" },
+                      "email": { "type": "string" },
+                      "phoneNumber": { "type": "string" },
+                      "documentUrl": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "References successfully submitted for Operations review.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 201 },
+                "status": { "type": "string", "example": "CREATED" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "References submitted successfully for operations review" },
+                    "references": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "example": "ref-uuid-1" },
+                          "activateRequestId": { "type": "string", "example": "req-uuid" },
+                          "fullName": { "type": "string", "example": "Referee 1" },
+                          "bankName": { "type": "string", "example": "Access Bank" },
+                          "accountNumber": { "type": "string", "example": "0123456789" },
+                          "email": { "type": "string", "example": "ref1@email.com" },
+                          "phoneNumber": { "type": "string", "example": "08012345678" },
+                          "documentUrl": { "type": "string", "example": "https://regent-archive-files.s3.amazonaws.com/..." },
+                          "status": { "type": "string", "example": "PENDING" },
+                          "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                          "updatedAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or not a CURRENT account request."
+          }
+        }
+      }
+    },
+    "/activate/references/pending-review": {
+      "get": {
+        "tags": ["Current Account References"],
+        "summary": "Fetch all referees currently awaiting Operations validation with linked customer and request details",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pending referees with enriched request and customer metadata.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "c3eb84e5-fb88-4744-81cb-26a1d88e8446" },
+                      "activateRequestId": { "type": "string", "example": "0485a2b3-a5b0-4826-89ba-dad386cef9d4" },
+                      "fullName": { "type": "string", "example": "John Doe" },
+                      "bankName": { "type": "string", "example": "Access Bank" },
+                      "accountNumber": { "type": "string", "example": "0123456789" },
+                      "email": { "type": "string", "example": "johndoe@email.com" },
+                      "phoneNumber": { "type": "string", "example": "08012345678" },
+                      "documentUrl": { "type": "string", "example": "https://regent-archive-files.s3.eu-north-1.amazonaws.com/..." },
+                      "status": { "type": "string", "example": "PENDING" },
+                      "rejectionReason": { "type": "string", "example": null },
+                      "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                      "updatedAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                      "accountRequest": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "example": "0485a2b3-a5b0-4826-89ba-dad386cef9d4" },
+                          "requestNumber": { "type": "string", "example": "REQ-1779709625575" },
+                          "accountCategory": { "type": "string", "example": "INDIVIDUAL" },
+                          "accountType": { "type": "string", "example": "CURRENT" },
+                          "tier": { "type": "string", "example": "TIER_1" },
+                          "status": { "type": "string", "example": "PROCESSING" },
+                          "rm": {
+                            "type": "object",
+                            "properties": {
+                              "staffId": { "type": "string", "example": "7a02a1b0-8b97-4b79-b5f5-22ea52fdc62a" },
+                              "staffName": { "type": "string", "example": "Regent MFB" },
+                              "role": { "type": "string", "example": "Chief Operating Officer" },
+                              "email": { "type": "string", "example": "admin@regentmfb.com" }
+                            }
+                          },
+                          "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" }
+                        }
+                      },
+                      "customer": {
+                        "type": "object",
+                        "properties": {
+                          "firstName": { "type": "string", "example": "Jane" },
+                          "middleName": { "type": "string", "example": "Elizabeth" },
+                          "lastName": { "type": "string", "example": "Smith" },
+                          "phoneNumber": { "type": "string", "example": "08087654321" },
+                          "email": { "type": "string", "example": "janesmith@email.com" },
+                          "verificationType": { "type": "string", "example": "BVN" },
+                          "identifierMasked": { "type": "string", "example": "222******89" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/references": {
+      "get": {
+        "tags": ["Current Account References"],
+        "summary": "List references filtered by status (PENDING, PASSED, FAILED) with linked request and customer details",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (minimum 1)",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page (maximum 100)",
+            "type": "number",
+            "default": 10
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by PENDING, PASSED, or FAILED",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of references with enriched request and customer metadata."
+          }
+        }
+      }
+    },
+    "/activate/references/{id}/pass": {
+      "post": {
+        "tags": ["Current Account References"],
+        "summary": "Operations approves referee form. Auto-triggers CBA opening if all are passed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Referee reference record UUID",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fullName": { "type": "string" },
+                "bankName": { "type": "string" },
+                "accountNumber": { "type": "string" },
+                "email": { "type": "string" },
+                "phoneNumber": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Referee passed successfully.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "ref-uuid-1" },
+                    "activateRequestId": { "type": "string", "example": "req-uuid" },
+                    "fullName": { "type": "string", "example": "John Doe (Corrected)" },
+                    "bankName": { "type": "string", "example": "Access Bank" },
+                    "accountNumber": { "type": "string", "example": "0123456789" },
+                    "status": { "type": "string", "example": "PASSED" },
+                    "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                    "updatedAt": { "type": "string", "example": "2026-05-27T18:20:00.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/references/{id}/fail": {
+      "post": {
+        "tags": ["Current Account References"],
+        "summary": "Operations rejects referee form. Auto-spawns RM corrective task.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Referee reference record UUID",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Referee failed and RM task generated.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "ref-uuid-1" },
+                    "activateRequestId": { "type": "string", "example": "req-uuid" },
+                    "status": { "type": "string", "example": "FAILED" },
+                    "rejectionReason": { "type": "string", "example": "The scanned form image is blurred and signature is illegible." },
+                    "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                    "updatedAt": { "type": "string", "example": "2026-05-27T18:22:00.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activate/references/{id}/resubmit": {
+      "post": {
+        "tags": ["Current Account References"],
+        "summary": "RM resubmits a corrected reference form after Operations rejection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Referee reference record UUID",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "documentUrl": { "type": "string" },
+                "fullName": { "type": "string" },
+                "bankName": { "type": "string" },
+                "accountNumber": { "type": "string" },
+                "email": { "type": "string" },
+                "phoneNumber": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reference resubmitted and pending Ops re-review.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": true },
+                "statusCode": { "type": "number", "example": 200 },
+                "status": { "type": "string", "example": "OK" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Reference resubmitted successfully. Awaiting Operations review." },
+                    "reference": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "example": "ref-uuid-1" },
+                        "activateRequestId": { "type": "string", "example": "req-uuid" },
+                        "status": { "type": "string", "example": "PENDING" },
+                        "documentUrl": { "type": "string", "example": "https://storage.googleapis.com/..." },
+                        "createdAt": { "type": "string", "example": "2026-05-27T17:16:59.896Z" },
+                        "updatedAt": { "type": "string", "example": "2026-05-27T18:25:00.000Z" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Reference is not in FAILED status."
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/location-verification": {
+      "post": {
+        "tags": ["Location Verification"],
+        "summary": "Submit Location & Proximity Verification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Account Request UUID (activateRequestId)",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "address": { "type": "string", "example": "123 Broad Street, Lagos" },
+                "proofOfAddressDocumentId": { "type": "string", "example": "doc-uuid-here" },
+                "customerLocationImageId": { "type": "string", "example": "doc-uuid-here" },
+                "isNearby": { "type": "boolean", "example": true },
+                "rmLatitude": { "type": "number", "example": 6.45306 },
+                "rmLongitude": { "type": "number", "example": 3.39583 },
+                "customerLatitude": { "type": "number", "example": 6.45308 },
+                "customerLongitude": { "type": "number", "example": 3.39585 }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Location verification submitted and processed."
+          }
+        }
+      }
+    },
+    "/activate/location-verifications/{id}": {
+      "get": {
+        "tags": ["Location Verification"],
+        "summary": "Get details of a location verification record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification record details."
+          }
+        }
+      }
+    },
+    "/activate/location-verifications/{id}/manual-review": {
+      "post": {
+        "tags": ["Location Verification"],
+        "summary": "Operations manual review of a pending location check",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string", "example": "APPROVED" },
+                "reason": { "type": "string", "example": "Proof of address matches residential address completely." }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Location review complete."
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/tier-two": {
+      "post": {
+        "tags": ["Account Tier Upgrades"],
+        "summary": "Submit a Tier 2 Upgrade Request for a Savings Account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Account Request UUID (activateRequestId)",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bvn": { "type": "string", "example": "12345678901" },
+                "nin": { "type": "string", "example": "99999999999" },
+                "idCardDocumentId": { "type": "string", "example": "id-card-doc-uuid-here" },
+                "hasConsent": { "type": "boolean", "example": true }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Tier 2 upgrade request submitted and enqueued."
+          }
+        }
+      }
+    },
+    "/activate/accounts/{id}/tier-three": {
+      "post": {
+        "tags": ["Account Tier Upgrades"],
+        "summary": "Submit a Tier 3 Upgrade Request for a Savings Account (Unified GPS & Address)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Account Request UUID (activateRequestId)",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "address": { "type": "string", "example": "123 Broad Street, Lagos" },
+                "proofOfAddressDocumentId": { "type": "string", "example": "utility-bill-doc-uuid-here" },
+                "customerLocationImageId": { "type": "string", "example": "location-pic-doc-uuid-here" },
+                "isNearby": { "type": "boolean", "example": true },
+                "rmLatitude": { "type": "number", "example": 6.45306 },
+                "rmLongitude": { "type": "number", "example": 3.39583 },
+                "customerLatitude": { "type": "number", "example": 6.45308 },
+                "customerLongitude": { "type": "number", "example": 3.39585 }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Tier 3 upgrade request processed."
+          }
+        }
+      }
+    },
+    "/activate/tier-upgrades": {
+      "get": {
+        "tags": ["Account Tier Upgrades"],
+        "summary": "Retrieve a list of all tier upgrades",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "type": "number",
+            "default": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "number",
+            "default": 10
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tier upgrades."
+          }
+        }
+      }
+    },
+    "/activate/tier-upgrades/{id}": {
+      "get": {
+        "tags": ["Account Tier Upgrades"],
+        "summary": "Fetch details of a single upgrade request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upgrade request details."
+          }
+        }
+      }
+    },
+    "/activate/tier-upgrades/{id}/retry": {
+      "post": {
+        "tags": ["Account Tier Upgrades"],
+        "summary": "Retry a failed upgrade request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry initiated successfully."
+          }
+        }
+      }
+    },
+    "/activate/customers": {
+      "get": {
+        "tags": ["Customers Management"],
+        "summary": "Get paginated list of onboarded customers and summary metrics",
+        "responses": {
+          "200": {
+            "description": "Paginated list of customers returned."
+          }
+        }
+      }
+    },
+    "/activate/customers/{id}": {
+      "get": {
+        "tags": ["Customers Management"],
+        "summary": "Get full detail tabs context for a specific customer",
+        "responses": {
+          "200": {
+            "description": "Customer context details retrieved."
+          }
+        }
+      }
+    },
+    "/activate/customers/{id}/bankone": {
+      "get": {
+        "tags": ["Customers Management"],
+        "summary": "Get customer and account details from BankOne by local Customer ID",
+        "responses": {
+          "200": {
+            "description": "BankOne details successfully retrieved."
+          }
+        }
+      }
+    },
+    "/activate/dashboard/my": {
+      "get": {
+        "tags": ["RM & Executive Dashboards"],
+        "summary": "Get dynamic personalized dashboard metrics (supports RM, Team Lead, and CMO)",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-01"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-30"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "type": "string",
+            "example": "week"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard stats returned successfully."
+          },
+          "401": {
+            "description": "Invalid Orchestro SSO token provided."
+          }
+        }
+      }
+    },
+    "/activate/dashboard/team-lead": {
+      "get": {
+        "tags": ["RM & Executive Dashboards"],
+        "summary": "Enforce Team Lead reporting dashboard aggregates and breakdown by RM",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-01"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-30"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "type": "string",
+            "example": "week"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team Lead dashboard stats returned successfully."
+          },
+          "401": {
+            "description": "Invalid Orchestro SSO token provided."
+          }
+        }
+      }
+    },
+    "/activate/dashboard/cmo": {
+      "get": {
+        "tags": ["RM & Executive Dashboards"],
+        "summary": "Enforce CMO directorate-wide dashboard aggregates and Team Lead summaries",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-01"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "type": "string",
+            "example": "2026-05-30"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "type": "string",
+            "example": "week"
+          },
+          {
+            "name": "branchId",
+            "in": "query",
+            "type": "string",
+            "example": "HQ_BRANCH"
+          },
+          {
+            "name": "teamLeadId",
+            "in": "query",
+            "type": "string",
+            "example": "tl_123"
+          },
+          {
+            "name": "rmId",
+            "in": "query",
+            "type": "string",
+            "example": "rm_123"
+          },
+          {
+            "name": "x-reveal-token",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CMO dashboard stats returned successfully."
+          },
+          "401": {
+            "description": "Invalid Orchestro SSO token provided."
+          }
+        }
+      }
+    }
+  }
+}
