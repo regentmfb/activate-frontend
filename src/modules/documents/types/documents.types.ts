@@ -10,9 +10,23 @@ export type DocumentType =
   | 'UTILITY_BILL'
   | 'BANK_STATEMENT'
   | 'EMPLOYMENT_LETTER'
-  | 'OTHER';
+  | 'OTHER'
+  | 'valid_id'
+  | 'utility_bill'
+  | 'passport_photo'
+  | 'signature'
+  | 'bvn_nin_verification_evidence'
+  | 'reference_1'
+  | 'reference_2';
 
-export type DocumentSource = 'CAMERA' | 'GALLERY' | 'FILE_PICKER' | 'SCANNER';
+export type DocumentSource =
+  | 'CAMERA'
+  | 'GALLERY'
+  | 'FILE_PICKER'
+  | 'SCANNER'
+  | 'FIELD_CAPTURE'
+  | 'MANUAL_UPLOAD'
+  | 'OFFLINE_SYNC';
 
 // ── Upload payload ────────────────────────────────────────────────────────────
 

@@ -1,12 +1,11 @@
 {
   "name": "RegentMFB Activate",
   "short_name": "Activate",
-  "description": "RegentMFB staff account opening and management platform",
-  "start_url": "/dashboard",
+  "description": "Staff-facing platform for RegentMFB to open accounts, manage customers, and track performance.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#920793",
-  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

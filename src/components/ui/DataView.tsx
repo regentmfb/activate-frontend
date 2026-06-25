@@ -20,6 +20,7 @@ type Props<T> = {
   maxItems?: number;
   onViewAll?: () => void;
   emptyMessage?: string;
+  emptyState?: React.ReactNode;
   gridCols?: string;
   isLoading?: boolean;
   onRowClick?: (row: T) => void;
@@ -34,6 +35,7 @@ export function DataView<T>({
   maxItems,
   onViewAll,
   emptyMessage = 'No records found.',
+  emptyState,
   gridCols = 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
   isLoading,
   onRowClick,
@@ -95,9 +97,13 @@ export function DataView<T>({
 
       {/* Empty state */}
       {data.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center">
-          <p className="text-gray-400 text-[14px]">{emptyMessage}</p>
-        </div>
+        emptyState ? (
+          emptyState
+        ) : (
+          <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center">
+            <p className="text-gray-400 text-[14px]">{emptyMessage}</p>
+          </div>
+        )
       ) : view === 'grid' ? (
         <div className={cn('grid gap-3', gridCols)}>
           {displayed.map((row) => (

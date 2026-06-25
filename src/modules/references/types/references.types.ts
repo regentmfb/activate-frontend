@@ -58,7 +58,7 @@ export type Reference = {
 
 export type SubmitReferencesPayload = {
   documentUrl?: string;
-  references: Reference[];
+  references?: Reference[];
 };
 
 export type FailReferencePayload = {

@@ -54,7 +54,7 @@ export function useSubmitReferences() {
       referencesApi.submitReferences(accountId, payload),
     onSuccess: (result, { payload }) => {
       queryClient.invalidateQueries({ queryKey: ['references'] });
-      const count = result?.referencesCount ?? payload.references.length;
+      const count = result?.referencesCount ?? payload.references?.length ?? 1;
       appToast.success(`${count} reference${count > 1 ? 's' : ''} submitted successfully`);
     },
     onError: (error: Error) => {

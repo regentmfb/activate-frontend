@@ -181,67 +181,69 @@ export function CustomerBankOneTab({ customerId }: Props) {
       </div>
 
       {/* Linked Core Accounts */}
-      <div className="space-y-2">
-        <p className="text-[13px] font-bold text-gray-900 px-1">Linked Core Accounts ({accounts.length})</p>
-        
-        {accounts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
-            <CreditCard className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-            <p className="text-[13px] font-semibold text-gray-900">No core accounts found</p>
-            <p className="text-[12px] text-gray-500 mt-1">This customer has no active accounts in BankOne.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {accounts.map((acc: any, idx: number) => (
-              <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] font-bold text-gray-900">{acc.accountName}</p>
-                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                      {acc.productName} ({acc.productCode})
-                    </p>
+      {false && (
+        <div className="space-y-2">
+          <p className="text-[13px] font-bold text-gray-900 px-1">Linked Core Accounts ({accounts.length})</p>
+          
+          {accounts.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+              <CreditCard className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+              <p className="text-[13px] font-semibold text-gray-900">No core accounts found</p>
+              <p className="text-[12px] text-gray-500 mt-1">This customer has no active accounts in BankOne.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {accounts.map((acc: any, idx: number) => (
+                <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-bold text-gray-900">{acc.accountName}</p>
+                      <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                        {acc.productName} ({acc.productCode})
+                      </p>
+                    </div>
+                    <span className={cn(
+                      'px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0',
+                      acc.status?.toUpperCase() === 'ACTIVE' 
+                        ? 'bg-green-50 border-green-200 text-green-700' 
+                        : 'bg-amber-50 border-amber-200 text-amber-700'
+                    )}>
+                      {acc.status}
+                    </span>
                   </div>
-                  <span className={cn(
-                    'px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0',
-                    acc.status?.toUpperCase() === 'ACTIVE' 
-                      ? 'bg-green-50 border-green-200 text-green-700' 
-                      : 'bg-amber-50 border-amber-200 text-amber-700'
-                  )}>
-                    {acc.status}
-                  </span>
-                </div>
 
-                <div className="flex flex-col gap-1 pt-2 border-t border-gray-50">
-                  <div className="flex items-center justify-between text-[12px]">
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="font-mono font-semibold">NUBAN: {acc.nuban || acc.accountNumber || '—'}</span>
+                  <div className="flex flex-col gap-1 pt-2 border-t border-gray-50">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <div className="flex items-center gap-1.5 text-gray-600">
+                        <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="font-mono font-semibold">NUBAN: {acc.nuban || acc.accountNumber || '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-gray-500 font-medium">
+                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                        <span>Opened: {formatDate(acc.dateOpened)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-gray-500 font-medium">
-                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                      <span>Opened: {formatDate(acc.dateOpened)}</span>
-                    </div>
+                    {acc.nuban && acc.accountNumber && acc.nuban !== acc.accountNumber && (
+                      <div className="text-[10px] text-gray-400 font-mono pl-5">
+                        System Ref: {acc.accountNumber}
+                      </div>
+                    )}
                   </div>
-                  {acc.nuban && acc.accountNumber && acc.nuban !== acc.accountNumber && (
-                    <div className="text-[10px] text-gray-400 font-mono pl-5">
-                      System Ref: {acc.accountNumber}
-                    </div>
-                  )}
-                </div>
 
-                <div className="bg-purple-50/50 rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[11px] text-gray-500 font-semibold flex items-center gap-1">
-                    <Wallet className="h-3.5 w-3.5 text-gray-400" /> Balance
-                  </span>
-                  <span className="text-[14px] font-black text-[#920793]">
-                    ₦{acc.accountBalance?.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </span>
+                  <div className="bg-purple-50/50 rounded-xl p-3 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500 font-semibold flex items-center gap-1">
+                      <Wallet className="h-3.5 w-3.5 text-gray-400" /> Balance
+                    </span>
+                    <span className="text-[14px] font-black text-[#920793]">
+                      ₦{acc.accountBalance?.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

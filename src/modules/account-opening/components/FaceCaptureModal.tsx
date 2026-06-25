@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { X, RefreshCw, ScanFace } from 'lucide-react';
+import { X, RefreshCw, ScanFace, SwitchCamera, Timer } from 'lucide-react';
 
 type Props = {
   onCapture: (dataUrl: string) => void;
@@ -10,12 +10,6 @@ type Props = {
 };
 
 type Status = 'loading' | 'ready' | 'scanning' | 'flash' | 'captured' | 'error';
-
-const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
-  facingMode: 'user',
-  width:  { ideal: 1920 },
-  height: { ideal: 1080 },
-};
 
 // Oval dimensions (in the 390×680 SVG viewBox)
 const CX = 195, CY = 295, RX = 118, RY = 152;
@@ -25,12 +19,32 @@ export function FaceCaptureModal({ onCapture, onClose }: Props) {
   const flashRef    = useRef<HTMLDivElement>(null);
   const [status, setStatus]           = useState<Status>('loading');
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+  const [facingMode, setFacingMode]   = useState<'user' | 'environment'>('user');
+  const [countdown, setCountdown]     = useState<number | null>(null);
 
   // Cleanup on unmount
   useEffect(() => () => { setCapturedUrl(null); }, []);
 
+  // Countdown timer logic
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (countdown === 0) {
+      setCountdown(null);
+      shoot();
+    }
+  }, [countdown]);
+
   const handleUserMedia = useCallback(() => setStatus('ready'), []);
   const handleUserMediaError = useCallback(() => setStatus('error'), []);
+
+  function toggleCamera() {
+    setStatus('loading');
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  }
 
   function shoot() {
     if (status !== 'ready') return;
@@ -40,9 +54,7 @@ export function FaceCaptureModal({ onCapture, onClose }: Props) {
     setTimeout(() => {
       setStatus('flash');
       setTimeout(() => {
-        const url = webcamRef.current?.getScreenshot({
-          width: 1280, height: 720,
-        }) ?? null;
+        const url = webcamRef.current?.getScreenshot() ?? null;
         setCapturedUrl(url);
         setStatus(url ? 'captured' : 'error');
       }, 350);
@@ -91,7 +103,7 @@ export function FaceCaptureModal({ onCapture, onClose }: Props) {
       </div>
 
       {/* ── Camera + overlay ──────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden bg-black">
 
         {/* Live webcam */}
         {isLive && (
@@ -100,10 +112,10 @@ export function FaceCaptureModal({ onCapture, onClose }: Props) {
             audio={false}
             screenshotFormat="image/jpeg"
             screenshotQuality={0.96}
-            videoConstraints={VIDEO_CONSTRAINTS}
+            videoConstraints={{ facingMode }}
             onUserMedia={handleUserMedia}
             onUserMediaError={handleUserMediaError}
-            mirrored
+            mirrored={facingMode === 'user'}
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
@@ -236,14 +248,37 @@ export function FaceCaptureModal({ onCapture, onClose }: Props) {
           <>
             <p className="text-gray-900 text-[15px] font-semibold">Position face in the oval</p>
             <p className="text-gray-400 text-[12px] text-center">Good lighting · Look straight · Keep still</p>
-            <div className="mt-1 relative flex items-center justify-center">
+            <div className="mt-1 relative flex items-center justify-center w-full">
+              <button
+                onClick={() => setCountdown(3)}
+                disabled={countdown !== null}
+                className="absolute left-8 h-12 w-12 rounded-full bg-gray-100 flex flex-col items-center justify-center text-gray-700 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                <Timer className="h-4 w-4" />
+                <span className="text-[9px] font-bold mt-0.5">AUTO</span>
+              </button>
+
               <div className="h-[72px] w-[72px] rounded-full border-[3px] border-gray-200 flex items-center justify-center">
-                <button
-                  onClick={shoot}
-                  className="h-[56px] w-[56px] rounded-full active:scale-90 transition-transform duration-100 shadow-md"
-                  style={{ background: '#920793' }}
-                />
+                {countdown !== null ? (
+                  <div className="h-[56px] w-[56px] rounded-full flex items-center justify-center bg-purple-50 text-[#920793] font-bold text-2xl">
+                    {countdown}
+                  </div>
+                ) : (
+                  <button
+                    onClick={shoot}
+                    className="h-[56px] w-[56px] rounded-full active:scale-90 transition-transform duration-100 shadow-md"
+                    style={{ background: '#920793' }}
+                  />
+                )}
               </div>
+
+              <button
+                onClick={toggleCamera}
+                disabled={countdown !== null}
+                className="absolute right-8 h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                <SwitchCamera className="h-5 w-5" />
+              </button>
             </div>
           </>
         )}

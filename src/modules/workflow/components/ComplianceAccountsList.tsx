@@ -88,11 +88,11 @@ function AccountCard({ account }: { account: ComplianceAccountRequest }) {
         <span>{new Date(account.createdAt).toLocaleDateString()}</span>
       </div>
 
-      {account.failureReason && (
+      {/* account.failureReason && (
         <div className="mt-2 p-2 bg-red-50 rounded-lg">
           <p className="text-xs text-red-700">{account.failureReason}</p>
         </div>
-      )}
+      ) */}
     </div>
   );
 }

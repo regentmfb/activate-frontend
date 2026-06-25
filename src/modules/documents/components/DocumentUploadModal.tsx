@@ -30,6 +30,13 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   BANK_STATEMENT: 'Bank Statement',
   EMPLOYMENT_LETTER: 'Employment Letter',
   OTHER: 'Document',
+  valid_id: 'Valid ID',
+  utility_bill: 'Utility Bill',
+  passport_photo: 'Passport Photo',
+  signature: 'Signature',
+  bvn_nin_verification_evidence: 'BVN/NIN Evidence',
+  reference_1: 'Reference 1',
+  reference_2: 'Reference 2',
 };
 
 export function DocumentUploadModal({

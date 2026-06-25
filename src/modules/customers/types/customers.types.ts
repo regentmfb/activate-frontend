@@ -41,6 +41,7 @@ export type CustomerDetailAccount = {
     title: string;
     description: string;
     targetTier: number;
+    status?: string;
   };
 };
 
@@ -88,6 +89,7 @@ export type Customer = {
   middleName?: string;
   accountType: string;
   accountNumber?: string;
+  accountOfficer?: string;
   tier: AccountTier;
   mobileActive: boolean;
   mobileOnboarded: boolean;

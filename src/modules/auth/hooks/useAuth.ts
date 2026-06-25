@@ -22,7 +22,7 @@ export function useAuth() {
     clearToken();
     queryClient.clear();
     appToast.logoutSuccess();
-    router.push('/login');
+    window.location.href = '/login';
   }
 
   return { user, isAuthenticated, logout };

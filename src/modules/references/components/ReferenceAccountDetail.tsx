@@ -239,7 +239,7 @@ export function ReferenceAccountDetail({ accountId }: Props) {
               <div className="flex items-center gap-3 mt-1 flex-wrap">
                 <p className="text-[11px] font-mono text-gray-400">{req.requestNumber}</p>
                 <span className="text-[11px] text-gray-300">·</span>
-                <p className="text-[11px] text-gray-400">RM: {req.rm.staffName}</p>
+                <p className="text-[11px] text-gray-400">RM: {req?.rm?.staffName || 'Unknown'}</p>
               </div>
             )}
             {cust && (
@@ -345,10 +345,10 @@ export function ReferenceAccountDetail({ accountId }: Props) {
             <InfoRow label="RM" value={
               <span className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-gray-400" />
-                {req.rm.staffName}
+                {req?.rm?.staffName || 'Unknown'}
               </span>
             } />
-            <InfoRow label="RM Email" value={req.rm.email} />
+            <InfoRow label="RM Email" value={req?.rm?.email || 'Unknown'} />
           </Section>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">

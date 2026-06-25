@@ -12,7 +12,7 @@ export function TargetsSettingsView() {
 
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
-  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [selectedStaffKey, setSelectedStaffKey] = useState('');
   
   // Targets lists
   const [targetsList, setTargetsList] = useState<StaffTarget[]>([]);
@@ -45,7 +45,8 @@ export function TargetsSettingsView() {
         ];
         setStaffList(allStaff);
         if (allStaff.length > 0) {
-          setSelectedStaffId(allStaff[0].staffId || allStaff[0].id);
+          const first = allStaff[0];
+          setSelectedStaffKey(`${first.staffId || first.id}::${first.roleLabel}`);
         }
       } catch (err) {
         console.error('Failed to load staff list:', err);
@@ -58,12 +59,13 @@ export function TargetsSettingsView() {
 
   // Fetch targets when selected staff changes
   useEffect(() => {
-    if (!selectedStaffId) return;
+    if (!selectedStaffKey) return;
+    const actualStaffId = selectedStaffKey.split('::')[0];
 
     async function loadTargets() {
       setLoadingTargets(true);
       try {
-        const list = await targetsApi.getTargetsByStaff(selectedStaffId);
+        const list = await targetsApi.getTargetsByStaff(actualStaffId);
         setTargetsList(list);
       } catch (err) {
         console.error('Failed to load targets:', err);
@@ -72,7 +74,7 @@ export function TargetsSettingsView() {
       }
     }
     loadTargets();
-  }, [selectedStaffId]);
+  }, [selectedStaffKey]);
 
   // Adjust period value default when type changes
   useEffect(() => {
@@ -85,19 +87,21 @@ export function TargetsSettingsView() {
     }
   }, [periodType]);
 
-  const selectedStaffObj = staffList.find((s) => (s.staffId || s.id) === selectedStaffId);
+  const selectedStaffObj = staffList.find((s) => `${s.staffId || s.id}::${s.roleLabel}` === selectedStaffKey);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedStaffId || !selectedStaffObj) return;
+    if (!selectedStaffKey || !selectedStaffObj) return;
 
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
+    
+    const actualStaffId = selectedStaffKey.split('::')[0];
 
     try {
       const payload = {
-        staffId: selectedStaffId,
+        staffId: actualStaffId,
         staffName: selectedStaffObj.staffName || '',
         role: selectedStaffObj.roleLabel === 'RM' ? 'RELATIONSHIP_MANAGER' : 'TEAM_LEAD',
         year: Number(year),
@@ -112,7 +116,7 @@ export function TargetsSettingsView() {
       setSuccessMsg('Target successfully configured!');
       
       // Reload targets
-      const updatedTargets = await targetsApi.getTargetsByStaff(selectedStaffId);
+      const updatedTargets = await targetsApi.getTargetsByStaff(actualStaffId);
       setTargetsList(updatedTargets);
 
       // Reset input fields
@@ -168,15 +172,18 @@ export function TargetsSettingsView() {
                   <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">Staff Member</label>
                   <div className="relative">
                     <select
-                      value={selectedStaffId}
-                      onChange={(e) => setSelectedStaffId(e.target.value)}
+                      value={selectedStaffKey}
+                      onChange={(e) => setSelectedStaffKey(e.target.value)}
                       className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[14px] font-medium text-gray-800 outline-none focus:border-[#920793] focus:bg-white transition-all appearance-none cursor-pointer"
                     >
-                      {staffList.map((s) => (
-                        <option key={s.staffId || s.id} value={s.staffId || s.id}>
-                          {s.staffName || `${s.firstName} ${s.lastName}`} ({s.roleLabel})
-                        </option>
-                      ))}
+                      {staffList.map((s) => {
+                        const compKey = `${s.staffId || s.id}::${s.roleLabel}`;
+                        return (
+                          <option key={compKey} value={compKey}>
+                            {s.staffName || `${s.firstName} ${s.lastName}`} ({s.roleLabel})
+                          </option>
+                        );
+                      })}
                     </select>
                     <Users className="absolute right-3.5 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                   </div>

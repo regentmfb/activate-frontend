@@ -95,7 +95,7 @@ export function Tier3UpgradeStep({ formState, onNext }: Props) {
               <Camera className="h-6 w-6 text-gray-300" /><p className="text-[12px] text-gray-400">Upload proof of address</p>
             </UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProofUrl(URL.createObjectURL(f)); }} />
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProofUrl(URL.createObjectURL(f)); }} />
         </div>
         <button type="button" disabled={!proofUrl} onClick={() => onNext({ isProximityConfirmed: false, proofOfAddressUrl: proofUrl })} className={btn}>Submit for Review</button>
       </div>
@@ -123,7 +123,7 @@ export function Tier3UpgradeStep({ formState, onNext }: Props) {
           ) : (
             <UploadZone onClick={() => proofRef.current?.click()}><Camera className="h-5 w-5 text-gray-300" /><p className="text-[11px] text-gray-400">Utility bill</p></UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProofUrl(URL.createObjectURL(f)); }} />
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProofUrl(URL.createObjectURL(f)); }} />
         </div>
         <div>
           <label className={label}>Location Photo</label>
@@ -132,7 +132,7 @@ export function Tier3UpgradeStep({ formState, onNext }: Props) {
           ) : (
             <UploadZone onClick={() => locationRef.current?.click()}><Camera className="h-5 w-5 text-gray-300" /><p className="text-[11px] text-gray-400">Location photo</p></UploadZone>
           )}
-          <input ref={locationRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setLocationPhotoUrl(URL.createObjectURL(f)); }} />
+          <input ref={locationRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setLocationPhotoUrl(URL.createObjectURL(f)); }} />
         </div>
       </div>
 

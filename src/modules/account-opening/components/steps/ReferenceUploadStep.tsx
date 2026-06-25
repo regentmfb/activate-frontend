@@ -46,7 +46,7 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
     }
   };
 
-  const canProceed = allReferencesApproved;
+  const canProceed = hasReferences;
 
   return (
     <div className="space-y-4">
@@ -172,25 +172,16 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
         onClick={() => onNext({ referenceFormUrl: 'completed' })}
         className="w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40"
       >
-        {isSubmitting ? 'Submitting…' : canProceed ? 'Submit Account Opening' : 'Waiting for Reference Approval'}
+        {isSubmitting ? 'Submitting…' : canProceed ? 'Finish Onboarding' : 'Waiting for Reference Submission'}
       </button>
 
-      {/* Save & exit while pending */}
-      {hasReferences && !canProceed && (
-        <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 space-y-3">
-          <div>
-            <p className="text-[13px] font-semibold text-amber-800">References pending review</p>
-            <p className="text-[12px] text-amber-700 mt-0.5">
-              Operations is reviewing the submitted references. You can save this request and start a new account opening — this one will resume once references are approved.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNext({ referenceFormUrl: 'pending' })}
-            className="w-full h-9 rounded-lg text-[13px] font-semibold border border-amber-300 text-amber-800 bg-amber-100 hover:bg-amber-200 transition-colors"
-          >
-            Save & Start New Account
-          </button>
+      {/* Informative status card when references are pending review */}
+      {hasReferences && !allReferencesApproved && (
+        <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+          <p className="text-[13px] font-semibold text-blue-800">References Submitted Successfully</p>
+          <p className="text-[12px] text-blue-700 mt-1">
+            The referee documents have been uploaded and submitted for Operations validation. You can now complete the onboarding flow by clicking "Finish Onboarding" above.
+          </p>
         </div>
       )}
 

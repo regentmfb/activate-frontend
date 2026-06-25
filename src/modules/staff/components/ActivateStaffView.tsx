@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, ChevronLeft, ShieldCheck, Mail, Building, MapPin, Users } from 'lucide-react';
 import { useActivateStaff } from '../hooks/useStaff';
 import { cn } from '@src/utils';
+import { default as orchestroClient } from '@src/lib/orchestro-client';
 
 export function ActivateStaffView() {
   const router = useRouter();
   const { data, isLoading, error } = useActivateStaff();
   const [activeTab, setActiveTab] = useState<'TL' | 'RM'>('TL');
   const [searchQuery, setSearchQuery] = useState('');
-
+  
   const teamLeads = data?.teamLeads || [];
   const relationshipManagers = data?.relationshipManagers || [];
 

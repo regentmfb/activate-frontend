@@ -62,8 +62,12 @@ export type IndividualCurrentFormState = {
   address: string;
   // Uploads
   customerPhotoUrl: string | null;
+  customerPhotoFile: File | null;        // actual File for customer photo
   livenessPhotoUrl: string | null;
   idCardPhotoUrl: string | null;
+  idCardPhotoFile: File | null;          // actual File for ID card
+  signatureFile: File | null;            // actual File for signature
+  bvnNinEvidenceFile: File | null;       // actual File for BVN/NIN verification evidence
   // Location
   isProximityConfirmed: boolean | null;
   proofOfAddressUrl: string | null;

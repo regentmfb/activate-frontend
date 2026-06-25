@@ -1,6 +1,5 @@
 import type { NextConfig } from 'next';
-// @ts-expect-error next-pwa has no types
-import withPWA from 'next-pwa';
+import withPWAInit from '@ducanh2912/next-pwa';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -20,11 +19,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-const pwaConfig = withPWA({
+const withPWA = withPWAInit({
   dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  disable: false, // The user wants to test PWA
 });
 
-export default pwaConfig(nextConfig);
+export default withPWA(nextConfig);

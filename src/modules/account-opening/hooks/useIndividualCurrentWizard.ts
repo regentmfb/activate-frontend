@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { generateClientReference } from '@src/utils';
 import { CurrentWizardStep, IndividualCurrentFormState } from '../types/wizard.types';
 import { CURRENT_STEP_LABELS } from '@src/constants/labels';
+import { useSaveDraft, useDeleteDraft, useGetDrafts } from '@src/modules/drafts/api/drafts.api';
 
 const STEP_LABELS = CURRENT_STEP_LABELS;
 
@@ -49,8 +51,12 @@ const initialState: IndividualCurrentFormState = {
   secondaryIdValue: '',
   address: '',
   customerPhotoUrl: null,
+  customerPhotoFile: null,
   livenessPhotoUrl: null,
   idCardPhotoUrl: null,
+  idCardPhotoFile: null,
+  signatureFile: null,
+  bvnNinEvidenceFile: null,
   isProximityConfirmed: null,
   proofOfAddressUrl: null,
   locationPhotoUrl: null,
@@ -73,14 +79,37 @@ function loadDraft(): { step: CurrentWizardStep; state: IndividualCurrentFormSta
 }
 
 export function useIndividualCurrentWizard() {
-  const draft = typeof window !== 'undefined' ? loadDraft() : null;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftIdParam = searchParams.get('draftId');
+  const { data: drafts } = useGetDrafts();
 
-  const [currentStep, setCurrentStep] = useState<CurrentWizardStep>(draft?.step ?? 'IDENTITY_INPUT');
-  const [formState, setFormState] = useState<IndividualCurrentFormState>(draft?.state ?? initialState);
+  // Find if we have a draft passed in URL
+  const serverDraft = drafts?.find((d) => d.id === draftIdParam);
+
+  // Local fallback for unsynced changes
+  const localDraft = typeof window !== 'undefined' ? loadDraft() : null;
+  const draftState = serverDraft?.draftData?.state ?? localDraft?.state;
+  const draftStep = serverDraft?.draftData?.step ?? localDraft?.step;
+
+  const [currentStep, setCurrentStep] = useState<CurrentWizardStep>(draftStep ?? 'IDENTITY_INPUT');
+  const [formState, setFormState] = useState<IndividualCurrentFormState>(draftState ?? initialState);
   const [isManualMode, setIsManualMode] = useState(false);
   const [useLivenessMode, setUseLivenessMode] = useState(false);
-  // If a draft exists, show the resume prompt until the user decides
-  const [showDraftPrompt, setShowDraftPrompt] = useState<boolean>(!!draft);
+  
+  // Only show prompt if it's a local draft without a URL draft ID
+  const [showDraftPrompt, setShowDraftPrompt] = useState<boolean>(!!localDraft && !draftIdParam);
+
+  const { mutate: saveToServer } = useSaveDraft();
+  const { mutate: deleteFromServer } = useDeleteDraft();
+
+  // If we load from server draft via URL, clear the param
+  useEffect(() => {
+    if (serverDraft && draftIdParam) {
+      resumeDraft();
+      router.replace('/account-opening/individual-current');
+    }
+  }, [serverDraft, draftIdParam]);
 
   const currentIndex = STEPS.indexOf(currentStep);
 
@@ -111,10 +140,19 @@ export function useIndividualCurrentWizard() {
   function saveDraft() {
     const payload = { step: currentStep, state: formState };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+    saveToServer({
+      draftId: serverDraft?.id,
+      accountCategory: 'INDIVIDUAL',
+      accountType: 'CURRENT',
+      draftData: payload,
+    });
   }
 
   function clearDraft() {
     localStorage.removeItem(DRAFT_KEY);
+    if (serverDraft?.id) {
+      deleteFromServer(serverDraft.id);
+    }
   }
 
   function resumeDraft() {
@@ -140,7 +178,7 @@ export function useIndividualCurrentWizard() {
     setShowDraftPrompt(false);
   }
 
-  const hasDraft = typeof window !== 'undefined' && !!localStorage.getItem(DRAFT_KEY);
+  const hasDraft = (typeof window !== 'undefined' && !!localStorage.getItem(DRAFT_KEY)) || !!serverDraft;
 
   return {
     currentStep,

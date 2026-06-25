@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useIndividualCurrentWizard } from '@src/modules/account-opening/hooks/useIndividualCurrentWizard';
 import { useInitiateAccount, useCancelAccountRequest, useRetryAccountRequest } from '@src/modules/account-opening/hooks/useAccountOpening';
+import { accountOpeningApi } from '@src/modules/account-opening/api/account-opening.api';
 import { useSubmitLocationVerification } from '@src/modules/account-opening/hooks/useLocationVerification';
 import { documentsApi } from '@src/modules/documents/api/documents.api';
 import { AccountOpeningShell } from '@src/modules/account-opening/components/AccountOpeningShell';
@@ -32,6 +34,7 @@ export default function IndividualCurrentPage() {
   const { mutate: cancelRequest } = useCancelAccountRequest();
   const { mutate: retryRequest } = useRetryAccountRequest();
   const { mutateAsync: submitLocationVerification } = useSubmitLocationVerification();
+  const [isFinishingLocation, setIsFinishingLocation] = useState(false);
 
   function handleIdentityNext(data?: Partial<IndividualCurrentFormState>) {
     if (data) update(data);
@@ -50,6 +53,7 @@ export default function IndividualCurrentPage() {
         goTo('SUBMIT_FAILED');
         return;
       }
+      setIsFinishingLocation(true);
       initiateAccount(
         {
           verificationId: latestState.verificationId,
@@ -63,16 +67,62 @@ export default function IndividualCurrentPage() {
             update({ accountRequestId: request.id, accountNumber: request.bankOneAccountNumber ?? null });
             
             try {
-              // Upload proof-of-address and location photo to get real document UUIDs
+              // 1. Upload all provided files
               let proofOfAddressDocumentId = '';
               let customerLocationImageId = '';
+
+              console.log('[Current Wizard] Files in state:', {
+                customerPhotoFile: !!latestState.customerPhotoFile,
+                idCardPhotoFile: !!latestState.idCardPhotoFile,
+                proofOfAddressFile: !!latestState.proofOfAddressFile,
+                locationPhotoFile: !!latestState.locationPhotoFile,
+                signatureFile: !!latestState.signatureFile,
+                bvnNinEvidenceFile: !!latestState.bvnNinEvidenceFile,
+              });
+
+              // Upload customer passport photo — use File object if captured directly,
+              // or fetch from the URL (blob/data URL) when carried over from liveness check.
+              const customerPhotoUrl = latestState.customerPhotoUrl || latestState.livenessPhotoUrl;
+              if (latestState.customerPhotoFile) {
+                await documentsApi.upload({
+                  file: latestState.customerPhotoFile,
+                  activateRequestId: request.id,
+                  documentType: 'passport_photo',
+                  source: 'FIELD_CAPTURE',
+                });
+              } else if (customerPhotoUrl) {
+                try {
+                  const res = await fetch(customerPhotoUrl);
+                  const blob = await res.blob();
+                  const photoFile = new File([blob], 'customer_photo.jpg', { type: blob.type || 'image/jpeg' });
+                  await documentsApi.upload({
+                    file: photoFile,
+                    activateRequestId: request.id,
+                    documentType: 'passport_photo',
+                    source: 'FIELD_CAPTURE',
+                  });
+                } catch (fetchErr) {
+                  console.error('[Current Wizard] Failed to fetch customer photo from URL for upload:', fetchErr);
+                }
+              } else {
+                console.warn('[Current Wizard] No customer photo available to upload as passport_photo.');
+              }
+
+              if (latestState.idCardPhotoFile) {
+                await documentsApi.upload({
+                  file: latestState.idCardPhotoFile,
+                  activateRequestId: request.id,
+                  documentType: 'valid_id',
+                  source: 'FIELD_CAPTURE',
+                });
+              }
 
               if (latestState.proofOfAddressFile) {
                 const proofDoc = await documentsApi.upload({
                   file: latestState.proofOfAddressFile,
                   activateRequestId: request.id,
-                  documentType: 'PROOF_OF_ADDRESS',
-                  source: 'FILE_PICKER',
+                  documentType: 'utility_bill',
+                  source: 'FIELD_CAPTURE',
                 });
                 proofOfAddressDocumentId = proofDoc.documentId;
               }
@@ -81,13 +131,44 @@ export default function IndividualCurrentPage() {
                 const locationDoc = await documentsApi.upload({
                   file: latestState.locationPhotoFile,
                   activateRequestId: request.id,
-                  documentType: 'OTHER',
-                  source: 'FILE_PICKER',
+                  documentType: 'LOCATION_PHOTO' as any,
+                  source: 'FIELD_CAPTURE',
                 });
                 customerLocationImageId = locationDoc.documentId;
               }
 
-              // Submit location verification with real document UUIDs
+              if (latestState.signatureFile) {
+                await documentsApi.upload({
+                  file: latestState.signatureFile,
+                  activateRequestId: request.id,
+                  documentType: 'signature',
+                  source: 'FIELD_CAPTURE',
+                });
+              }
+
+              if (latestState.bvnNinEvidenceFile) {
+                await documentsApi.upload({
+                  file: latestState.bvnNinEvidenceFile,
+                  activateRequestId: request.id,
+                  documentType: 'bvn_nin_verification_evidence',
+                  source: 'FIELD_CAPTURE',
+                });
+              }
+
+              // 2. Save the additional customer details (email, phone, secondary NIN, address) to the request
+              const detailsPayload: any = {
+                email: latestState.email,
+                secondPhone: latestState.secondPhone,
+                address: latestState.address,
+              };
+              if (latestState.secondaryIdMethod === 'NIN') {
+                detailsPayload.nin = latestState.secondaryIdValue;
+              } else if (latestState.secondaryIdMethod === 'BVN') {
+                detailsPayload.bvn = latestState.secondaryIdValue;
+              }
+              await accountOpeningApi.updateDetails(request.id, detailsPayload);
+
+              // 3. Submit location verification with real document UUIDs
               await submitLocationVerification({
                 id: request.id,
                 payload: {
@@ -103,11 +184,16 @@ export default function IndividualCurrentPage() {
               });
               goTo('REFERENCE_UPLOAD');
             } catch (err) {
-              console.error('Failed to submit location verification', err);
+              console.error('Failed to submit location verification or upload documents', err);
               goTo('SUBMIT_FAILED');
+            } finally {
+              setIsFinishingLocation(false);
             }
           },
-          onError: () => goTo('SUBMIT_FAILED'),
+          onError: () => {
+            setIsFinishingLocation(false);
+            goTo('SUBMIT_FAILED');
+          },
         }
       );
       return;
@@ -151,7 +237,7 @@ export default function IndividualCurrentPage() {
   return (
     <AccountOpeningShell
       title="Individual Current"
-      subtitle="Account Opening"
+      subtitle="Create Account"
       icon={<CreditCard className="h-4 w-4 text-[#920793]" />}
       clientReference={formState.clientReference}
       steps={progressSteps}
@@ -187,7 +273,7 @@ export default function IndividualCurrentPage() {
         <IDCardCaptureStep formState={formState} onNext={handleNext} />
       )}
       {currentStep === 'LOCATION_VERIFICATION' && (
-        <LocationVerificationStep formState={formState} onNext={handleNext} />
+        <LocationVerificationStep formState={formState} onNext={handleNext} isSubmitting={isSubmitting || isFinishingLocation} />
       )}
       {currentStep === 'REFERENCE_UPLOAD' && (
         <ReferenceUploadStep formState={formState} onNext={handleReferenceNext} isSubmitting={isSubmitting} />

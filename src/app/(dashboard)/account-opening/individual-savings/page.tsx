@@ -109,7 +109,7 @@ export default function IndividualSavingsPage() {
   return (
     <AccountOpeningShell
       title="Individual Savings"
-      subtitle="Account Opening"
+      subtitle="Create Account"
       icon={<PiggyBank className="h-4 w-4 text-[#920793]" />}
       clientReference={formState.clientReference}
       steps={progressSteps}

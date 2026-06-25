@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const identitySchema = z.object({
   verificationMethod: z.enum(['BVN', 'NIN']),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   identityValue: z
     .string()
     .min(11, 'Must be exactly 11 digits')

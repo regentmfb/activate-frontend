@@ -37,7 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <BottomNav />
 
-        <NetworkStatusBanner />
+        {/* <NetworkStatusBanner /> */}
+        
       </div>
     </AuthGuard>
   );

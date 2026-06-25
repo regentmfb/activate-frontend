@@ -5,19 +5,23 @@ import { Camera, RefreshCw } from 'lucide-react';
 import { IndividualCurrentFormState } from '../../types/wizard.types';
 
 type Props = {
-  formState: IndividualCurrentFormState;
-  onNext: (data: Partial<IndividualCurrentFormState>) => void;
+  formState: any;
+  onNext: (data: { idCardPhotoUrl: string | null; idCardPhotoFile?: File | null }) => void;
 };
 
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
 
 export function IDCardCaptureStep({ formState, onNext }: Props) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(formState.idCardPhotoUrl);
+  const [photoFile, setPhotoFile] = useState<File | null>(formState.idCardPhotoFile ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleCapture(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setPhotoUrl(URL.createObjectURL(file));
+    if (file) {
+      setPhotoUrl(URL.createObjectURL(file));
+      setPhotoFile(file);
+    }
   }
 
   return (
@@ -51,12 +55,12 @@ export function IDCardCaptureStep({ formState, onNext }: Props) {
         </div>
       )}
 
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCapture} />
+      <input ref={inputRef} type="file" accept="image/*"  className="sr-only" onChange={handleCapture} />
 
       <button
         type="button"
         disabled={!photoUrl}
-        onClick={() => onNext({ idCardPhotoUrl: photoUrl })}
+        onClick={() => onNext({ idCardPhotoUrl: photoUrl, idCardPhotoFile: photoFile })}
         className={btn}
       >
         Continue

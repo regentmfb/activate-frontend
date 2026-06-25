@@ -36,8 +36,13 @@ apiClient.interceptors.response.use(
     console.log('[apiClient] error — status:', status, '| url:', url, '| message:', message);
 
     if (status === 401 && typeof window !== 'undefined') {
-      console.log('[apiClient] 401 detected — dispatching auth:unauthorized event');
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      const isPinEndpoint = url?.includes('/security/reveal-token') || url?.includes('/security/pin');
+      if (!isPinEndpoint) {
+        console.log('[apiClient] 401 detected — dispatching auth:unauthorized event');
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      } else {
+        console.log('[apiClient] 401 on PIN endpoint — ignoring global logout');
+      }
     }
 
     return Promise.reject(new Error(message));

@@ -7,12 +7,24 @@ import { IndividualSavingsFormState } from '../../types/wizard.types';
 import { FaceCaptureModal } from '../FaceCaptureModal';
 
 type Props = {
-  formState: IndividualSavingsFormState;
-  onNext: (data: Partial<IndividualSavingsFormState>) => void;
+  formState: any;
+  onNext: (data: { customerPhotoUrl: string | null; customerPhotoFile?: File | null }) => void;
   isSubmitting?: boolean;
 };
 
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
+
+function dataURLtoFile(dataurl: string, filename: string): File {
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
 
 export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
   // Check if liveness photo exists — if so, pre-fill
@@ -20,6 +32,7 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(
     formState.customerPhotoUrl ?? formState.livenessPhotoUrl ?? null
   );
+  const [photoFile, setPhotoFile] = useState<File | null>(formState.customerPhotoFile ?? null);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +41,10 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
 
   function handleFileCapture(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setPhotoUrl(URL.createObjectURL(file));
+    if (file) {
+      setPhotoUrl(URL.createObjectURL(file));
+      setPhotoFile(file);
+    }
   }
 
   function openCapture() {
@@ -41,6 +57,7 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
 
   function handleDocumentUpload(result: any) {
     setPhotoUrl(result.url);
+    setPhotoFile(null); // Already uploaded to the backend via the modal
     setShowUploadModal(false);
   }
 
@@ -124,12 +141,12 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
           </div>
         </div>
 
-        <input ref={inputRef} type="file" accept="image/*" capture="user" className="sr-only" onChange={handleFileCapture} />
+        <input ref={inputRef} type="file" accept="image/*"  className="sr-only" onChange={handleFileCapture} />
 
         <button
           type="button"
           disabled={!photoUrl || isSubmitting}
-          onClick={() => onNext({ customerPhotoUrl: photoUrl })}
+          onClick={() => onNext({ customerPhotoUrl: photoUrl, customerPhotoFile: photoFile })}
           className={btn}
         >
           {isSubmitting ? 'Submitting…' : 'Continue'}
@@ -138,7 +155,16 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
 
       {showFaceModal && (
         <FaceCaptureModal
-          onCapture={(url) => { setPhotoUrl(url); setShowFaceModal(false); }}
+          onCapture={(url) => {
+            setPhotoUrl(url);
+            try {
+              const file = dataURLtoFile(url, 'customer_photo.jpg');
+              setPhotoFile(file);
+            } catch (e) {
+              console.error('Failed to convert base64 photo capture to file:', e);
+            }
+            setShowFaceModal(false);
+          }}
           onClose={() => setShowFaceModal(false)}
         />
       )}

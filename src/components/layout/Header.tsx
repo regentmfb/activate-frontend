@@ -3,17 +3,18 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen, ChevronRight, LogOut, KeyRound } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, ChevronRight, LogOut, KeyRound, Download } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useAuth } from '@/src/modules/auth/hooks/useAuth';
 import { ChangePinModal } from '@/src/modules/pin/components/ChangePinModal';
+import { usePWAInstall } from '@/src/hooks/usePWAInstall';
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   tasks: 'Tasks',
   customers: 'Customers',
-  'account-opening': 'Account Opening',
+  'account-opening': 'Create Account',
   'individual-savings': 'Individual Savings',
   'individual-current': 'Individual Current',
   'select-type': 'Select Type',
@@ -29,6 +30,12 @@ const SEGMENT_LABELS: Record<string, string> = {
   more: 'More',
 };
 
+const BREADCRUMB_LINKS: Record<string, string> = {
+  '/account-opening': '/account-opening/select-type',
+  '/workflow': '/workflow/compliance',
+  '/operations': '/operations/references',
+};
+
 function Breadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
@@ -36,7 +43,8 @@ function Breadcrumb() {
   return (
     <nav className="flex items-center gap-1 text-sm min-w-0">
       {segments.map((seg, i) => {
-        const href = '/' + segments.slice(0, i + 1).join('/');
+        const rawHref = '/' + segments.slice(0, i + 1).join('/');
+        const href = BREADCRUMB_LINKS[rawHref] || rawHref;
         const label = SEGMENT_LABELS[seg] ?? seg;
         const isLast = i === segments.length - 1;
 
@@ -127,6 +135,34 @@ function UserMenu() {
   );
 }
 
+function InstallAppButton() {
+  const { isStandalone, deferredPrompt, promptInstall, isIOS } = usePWAInstall();
+  
+  // Show the button if not installed, and we either have the native prompt or it's iOS
+  const canInstall = !isStandalone && (deferredPrompt || isIOS);
+  
+  if (!canInstall) return null;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => {
+        if (deferredPrompt) {
+          promptInstall();
+        } else if (isIOS) {
+          // Reset dismissed state by just reloading the page (state is in memory)
+          window.location.reload();
+        }
+      }}
+      className="hidden md:flex items-center gap-2 text-[#920793] border-[#920793]/20 hover:bg-[#920793]/5"
+    >
+      <Download className="w-4 h-4" />
+      Install App
+    </Button>
+  );
+}
+
 interface HeaderProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -148,11 +184,13 @@ export function Header({ collapsed, onToggleCollapse }: HeaderProps) {
 
       {/* Mobile: logo instead of breadcrumb */}
       <div className="md:hidden flex items-center">
-        <img
-          src="/logo/regentnewlogo.png"
-          alt="Regent MFB"
-          className="h-8 w-auto object-contain"
-        />
+        <Link href="/">
+          <img
+            src="/logo/regentnewlogo.png"
+            alt="Regent MFB"
+            className="h-12 w-auto object-contain"
+          />
+        </Link>
       </div>
 
       {/* Desktop: breadcrumb */}
@@ -161,6 +199,7 @@ export function Header({ collapsed, onToggleCollapse }: HeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
+        <InstallAppButton />
         <div className="hidden sm:block w-px h-5 bg-gray-200" />
         <UserMenu />
       </div>

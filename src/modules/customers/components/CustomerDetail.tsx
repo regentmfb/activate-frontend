@@ -110,6 +110,7 @@ export function CustomerDetail({ id }: Props) {
   const isMobileActive = overview?.mobileAppStatus?.toLowerCase().includes('activ') ?? false;
   const hasDeposit = overview?.depositStatus?.toLowerCase().includes('no') === false;
   const upgradeBanner = account?.upgradeTierBanner;
+  console.log('upgradeBanner in frontend:', upgradeBanner);
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -156,24 +157,25 @@ export function CustomerDetail({ id }: Props) {
         {upgradeBanner && (
           <div className="flex gap-2 mt-4">
             <button
+              disabled={!!upgradeBanner.status}
               onClick={() => router.push(`/account-upgrade/${id}?from=customer&currentTier=${tier}`)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-[#920793] bg-purple-50 hover:bg-purple-100 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-[#920793] bg-purple-50 hover:bg-purple-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <ArrowUpCircle className="h-3.5 w-3.5" />
-              Upgrade to Tier {upgradeBanner.targetTier}
+              {upgradeBanner.status ? `Processing Tier ${upgradeBanner.targetTier} Upgrade...` : `Upgrade to Tier ${upgradeBanner.targetTier}`}
             </button>
           </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+      <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1 overflow-x-auto no-scrollbar">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              'flex-1 py-2 rounded-lg text-[13px] font-medium transition-all',
+              'flex-1 min-w-fit px-4 py-2 rounded-lg text-[13px] font-medium transition-all whitespace-nowrap',
               tab === t.key ? 'bg-white text-[#920793] shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'
             )}
           >
@@ -285,10 +287,11 @@ export function CustomerDetail({ id }: Props) {
                 <p className="text-[13px] font-semibold text-[#920793]">{upgradeBanner.title}</p>
                 <p className="text-[12px] text-purple-700 mt-0.5">{upgradeBanner.description}</p>
                 <button
+                  disabled={!!upgradeBanner.status}
                   onClick={() => router.push(`/account-upgrade/${id}?from=customer&currentTier=${tier}`)}
-                  className="mt-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-[#920793] hover:opacity-90 transition-opacity"
+                  className="mt-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Start Upgrade
+                  {upgradeBanner.status ? `Processing Tier ${upgradeBanner.targetTier} Upgrade...` : 'Start Upgrade'}
                 </button>
               </div>
             </div>

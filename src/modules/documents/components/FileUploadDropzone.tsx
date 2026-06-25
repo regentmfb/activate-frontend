@@ -181,26 +181,55 @@ export function FileUploadDropzone({
               )}
             </div>
 
-            <input
-              type="file"
-              onChange={handleFileInput}
-              accept={getAcceptAttribute()}
-              disabled={disabled}
-              className="hidden"
-              id="file-upload"
-            />
-            
-            <label
-              htmlFor="file-upload"
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                disabled
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#920793] text-white hover:opacity-90 cursor-pointer'
+            <div className="flex gap-3">
+              <div>
+                <input
+                  type="file"
+                  onChange={handleFileInput}
+                  accept={getAcceptAttribute()}
+                  disabled={disabled}
+                  className="hidden"
+                  id="file-upload"
+                />
+                
+                <label
+                  htmlFor="file-upload"
+                  className={cn(
+                    'inline-block px-4 py-2 rounded-lg text-sm font-medium transition-colors text-center',
+                    disabled
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-[#920793] text-white hover:opacity-90 cursor-pointer'
+                  )}
+                >
+                  Choose File
+                </label>
+              </div>
+
+              {(!getAcceptAttribute() || getAcceptAttribute()?.includes('image')) && (
+                <div>
+                  <input
+                    type="file"
+                    onChange={handleFileInput}
+                    accept="image/*"
+                    
+                    disabled={disabled}
+                    className="hidden"
+                    id="camera-upload"
+                  />
+                  <label
+                    htmlFor="camera-upload"
+                    className={cn(
+                      'inline-block px-4 py-2 rounded-lg text-sm font-medium transition-colors border text-center',
+                      disabled
+                        ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'border-[#920793] text-[#920793] hover:bg-purple-50 cursor-pointer'
+                    )}
+                  >
+                    Take Photo
+                  </label>
+                </div>
               )}
-            >
-              Choose File
-            </label>
+            </div>
           </div>
         </div>
       )}

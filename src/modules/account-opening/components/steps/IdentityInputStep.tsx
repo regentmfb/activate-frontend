@@ -14,7 +14,7 @@ type Props = {
   accountType?: 'SAVINGS' | 'CURRENT';
 };
 
-const input = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-gray-50 border outline-none transition-colors placeholder:text-gray-300`;
+const input = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-white border outline-none transition-colors placeholder:text-gray-300`;
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2`;
 
 export function IdentityInputStep({ formState, onNext, accountType }: Props) {
@@ -120,6 +120,7 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
       </div>
 
       {/* Customer name */}
+      {/* 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide">First Name</label>
@@ -142,6 +143,7 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
           {errors.lastName && <p className="text-[12px] text-red-500">{errors.lastName.message}</p>}
         </div>
       </div>
+      */}
 
       <button type="submit" disabled={isPending} className={btn}>
         {isPending ? 'Starting verification…' : 'Continue'}

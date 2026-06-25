@@ -174,7 +174,7 @@ export function ReferenceForm({
 
             {/* Phone Number */}
             <div>
-              <label htmlFor={`phoneNumber-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+              <label htmlFor={`phoneNumber-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
               <Input
                 id={`phoneNumber-${index}`}
                 value={reference.phoneNumber}
@@ -198,7 +198,7 @@ export function ReferenceForm({
 
             {/* Email */}
             <div className="md:col-span-2">
-              <label htmlFor={`email-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Email Address <span className="text-red-500">*</span></label>
+              <label htmlFor={`email-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <Input
                 id={`email-${index}`}
                 type="email"

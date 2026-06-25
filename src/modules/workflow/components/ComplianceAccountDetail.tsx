@@ -247,32 +247,6 @@ export function ComplianceAccountDetail({ id }: Props) {
       <Section
         title="Customer Biodata & KYC"
         icon={User}
-        action={
-          canAct && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditForm({
-                  firstName: customer?.fullName?.split(' ')[0] ?? '',
-                  middleName: '',
-                  lastName: customer?.fullName?.split(' ').slice(-1)[0] ?? '',
-                  gender: customer?.gender ?? '',
-                  dateOfBirth: customer?.dateOfBirth ?? '',
-                  phoneNumber: customer?.phoneNumber ?? '',
-                  email: customer?.email ?? '',
-                  address: customer?.address ?? '',
-                  bvn: '',
-                  nin: '',
-                });
-                setShowEditForm(true);
-              }}
-              className="text-[#920793] border-purple-200 hover:bg-purple-50"
-            >
-              Edit Details
-            </Button>
-          )
-        }
       >
         <InfoRow label="Full Name" value={customer?.fullName ?? <NotProvided />} />
         <InfoRow label="Gender" value={customer?.gender && customer.gender !== 'N/A' ? customer.gender : <NotProvided />} />
@@ -291,16 +265,14 @@ export function ComplianceAccountDetail({ id }: Props) {
               {verification.status.replace(/_/g, ' ')}
             </span>
           } />
-          {verification.matchScore != null && (
-            <InfoRow label="Match Score" value={`${verification.matchScore}%`} />
-          )}
-          {verification.livenessCheckPassed != null && (
-            <InfoRow label="Liveness Check" value={
+          <InfoRow label="Match Score" value={verification.matchScore != null ? `${verification.matchScore}%` : <NotProvided />} />
+          <InfoRow label="Liveness Check" value={
+            verification.livenessCheckPassed != null ? (
               <span className={cn('font-semibold', verification.livenessCheckPassed ? 'text-green-600' : 'text-red-600')}>
                 {verification.livenessCheckPassed ? `Passed (${verification.livenessScore?.toFixed(2)})` : 'Failed'}
               </span>
-            } />
-          )}
+            ) : <NotProvided />
+          } />
           {verification.bvnMasked && (
             <InfoRow label="BVN" value={<span className="font-mono">{verification.bvnMasked}</span>} />
           )}
@@ -445,57 +417,7 @@ export function ComplianceAccountDetail({ id }: Props) {
         </div>
       )}
 
-      {/* Edit Modal */}
-      {showEditForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl relative border border-gray-100 max-h-[90vh] overflow-y-auto my-8">
-            <button onClick={() => setShowEditForm(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400">
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="text-[16px] font-black text-gray-900 mb-4">Edit Customer Account Details</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {(['firstName', 'middleName', 'lastName', 'phoneNumber', 'email', 'address'] as const).map((field) => (
-                <div key={field}>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                    {field.replace(/([A-Z])/g, ' $1').trim()}
-                  </label>
-                  <Input value={editForm[field]} onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })} />
-                </div>
-              ))}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Gender</label>
-                <select value={editForm.gender} onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })} className="w-full h-9 px-3 rounded-lg border border-gray-200 text-[13px]">
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Date of Birth</label>
-                <Input type="date" value={editForm.dateOfBirth} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">BVN (11 digits)</label>
-                <Input value={editForm.bvn} maxLength={11} onChange={(e) => setEditForm({ ...editForm, bvn: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">NIN (11 digits)</label>
-                <Input value={editForm.nin} maxLength={11} onChange={(e) => setEditForm({ ...editForm, nin: e.target.value })} />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-6">
-              <Button onClick={() => setShowEditForm(false)} variant="outline" className="flex-1">Cancel</Button>
-              <Button
-                onClick={() => updateAccount({ id: request.id, payload: editForm }, { onSuccess: () => setShowEditForm(false) })}
-                disabled={isUpdating}
-                className="flex-1 bg-[#920793] hover:bg-[#7a067b]"
-              >
-                {isUpdating ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

@@ -67,7 +67,7 @@ export function Tier2UpgradeStep({ formState, onNext }: Props) {
             <p className="text-[12px] text-gray-400">Tap to capture ID card</p>
           </div>
         )}
-        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCapture} />
+        <input ref={inputRef} type="file" accept="image/*"  className="sr-only" onChange={handleCapture} />
       </div>
 
       <button type="submit" disabled={!idCardPhotoUrl} className={btn}>Continue to Tier 3</button>

@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   ClipboardList,
+  FileText,
   Plus,
   Users,
   UserCog,
@@ -20,7 +22,8 @@ import { usePermissions } from '@src/hooks/usePermissions';
 const ALL_NAV = [
   { label: 'Dashboard',    href: '/dashboard',                   icon: LayoutDashboard, permission: null },
   { label: 'Customers',    href: '/customers',                   icon: Users,           permission: null },
-  { label: 'Open Account', href: '/account-opening/select-type', icon: Plus,            permission: 'CAN_OPEN_ACCOUNT'   as const, center: true },
+  { label: 'Create Account', href: '/account-opening/select-type', icon: Plus,            permission: 'CAN_OPEN_ACCOUNT'   as const, center: true },
+  { label: 'Drafts',       href: '/drafts',                      icon: FileText,        permission: 'CAN_OPEN_ACCOUNT' as const },
   { label: 'Compliance',   href: '/workflow/compliance',         icon: GitPullRequest,  permission: 'CAN_REVIEW_WORKFLOW' as const },
   { label: 'Manual Verif', href: '/workflow/manual-verifications',icon: GitPullRequest,  permission: 'CAN_REVIEW_WORKFLOW' as const },
   { label: 'Lien Reqs',    href: '/workflow/lien-requests',      icon: GitPullRequest,  permission: 'CAN_REVIEW_WORKFLOW' as const },
@@ -30,10 +33,19 @@ const ALL_NAV = [
   { label: 'Active Staff', href: '/staff/active',                icon: UserCog,         superAdminOnly: true },
 ];
 
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@src/components/ui/drawer';
+import { MoreHorizontal } from 'lucide-react';
+
 export function BottomNav() {
   const pathname = usePathname();
   const { can } = usePermissions();
-
   const user = useAuthStore((s) => s.user);
 
   const hrmsRoleStrings = user?.hrmsRoles || [];
@@ -44,7 +56,6 @@ export function BottomNav() {
   const isCmo = allRoleStrings.includes('CMO') || allRoleStrings.includes('ACTIVATECMO') || allRoleStrings.includes('CHIEFMARKETINGOFFICER');
   const isTargetSetter = isSuperAdmin || isCmo;
 
-  // Filter to what this role can see
   const allowed = ALL_NAV.filter((item) => {
     if (item.superAdminOnly && !isSuperAdmin) return false;
     if (item.targetsSetterOnly && !isTargetSetter) return false;
@@ -52,66 +63,113 @@ export function BottomNav() {
     return true;
   });
 
-  // Pick the first available center item (Open Account > Workflow)
   const centerItem = allowed.find((item) => item.center) ?? null;
-
-  // Non-center items — exclude center candidates so they don't appear twice
   const sideItems = allowed.filter((item) => !item.center);
 
-  // Build final nav: split side items around the center slot
-  const left  = sideItems.slice(0, Math.ceil(sideItems.length / 2));
-  const right = sideItems.slice(Math.ceil(sideItems.length / 2));
+  let displayItems: any[] = [];
+  let overflowItems: any[] = [];
 
-  const navItems = centerItem
-    ? [...left, centerItem, ...right]
-    : sideItems;
+  if (allowed.length > 5) {
+    const visibleSideItems = sideItems.slice(0, centerItem ? 3 : 4);
+    overflowItems = sideItems.slice(centerItem ? 3 : 4);
+
+    const left = visibleSideItems.slice(0, 2);
+    const right = visibleSideItems.slice(2);
+
+    displayItems = centerItem ? [...left, centerItem, ...right] : visibleSideItems;
+    
+    displayItems.push({
+      label: 'More',
+      href: '#more',
+      icon: MoreHorizontal,
+    });
+  } else {
+    const left = sideItems.slice(0, Math.ceil(sideItems.length / 2));
+    const right = sideItems.slice(Math.ceil(sideItems.length / 2));
+    displayItems = centerItem ? [...left, centerItem, ...right] : sideItems;
+  }
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setIsDrawerOpen(false);
+  }, [pathname]);
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard';
     return pathname === href || pathname.startsWith(href + '/');
   }
 
+  const renderItem = (item: any, isOverflow = false) => {
+    const active = isActive(item.href);
+    const linkEl = (
+      <Link
+        key={item.label}
+        href={item.href !== '#more' ? item.href : '#'}
+        onClick={() => {
+          // Provide some immediate feedback if desired, or let Next.js handle it
+        }}
+        className={cn(
+          "relative flex flex-col items-center justify-center transition-all duration-300 group",
+          isOverflow ? "p-4 bg-gray-50 rounded-2xl border border-gray-100" : "flex-1 h-full"
+        )}
+      >
+        <div className="flex flex-col items-center gap-1">
+          <div className={cn(
+            "relative flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-300",
+            active ? "bg-[#920793]/15 text-[#920793] scale-100" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400 scale-95 hover:scale-100 hover:text-gray-800 dark:hover:text-gray-200",
+            isOverflow && !active && "bg-white shadow-sm"
+          )}>
+            <item.icon className="h-[22px] w-[22px] shrink-0" strokeWidth={active ? 2.5 : 2} />
+            {active && !isOverflow && (
+              <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#920793] transition-all" />
+            )}
+          </div>
+          <span className={cn(
+            'text-[9px] font-semibold transition-colors duration-300 line-clamp-1 text-center max-w-[4rem]',
+            active ? 'text-[#920793]' : 'text-gray-400 dark:text-gray-500',
+            isOverflow && "text-[11px] mt-1 text-gray-700"
+          )}>
+            {item.label}
+          </span>
+        </div>
+      </Link>
+    );
+
+    return linkEl;
+  };
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 pointer-events-none safe-area-pb">
-      <div className="flex items-end h-[84px] overflow-x-auto no-scrollbar pointer-events-auto">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          const isCenter = item.center === true;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex-1 min-w-[4.5rem] flex flex-col items-center justify-end pb-2 gap-0.5 transition-colors relative',
-                isCenter 
-                  ? 'h-[84px] text-white' 
-                  : cn('h-16 bg-white border-t border-gray-100', active ? 'text-[#920793]' : 'text-gray-400')
-              )}
-            >
-              {isCenter ? (
-                <>
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-100 -z-10" />
-                  <div
-                    className="mb-4 h-14 w-14 rounded-full flex items-center justify-center shadow-lg shrink-0"
-                    style={{ backgroundColor: '#920793' }}
-                  >
-                    <item.icon className="h-6 w-6 text-white" />
+      <div className="flex items-center justify-around h-[72px] pointer-events-auto backdrop-blur-2xl bg-white/70 dark:bg-zinc-900/70 border-t border-white/40 dark:border-zinc-800/60 shadow-[0_-8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_32px_rgba(0,0,0,0.2)] px-2 pb-safe">
+        {displayItems.map((item) => {
+          if (item.label === 'More') {
+            return (
+              <Drawer key="more" open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+                <DrawerTrigger asChild>
+                  <button className="relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 group outline-none">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-300 text-gray-500 hover:bg-gray-100 scale-95 hover:scale-100 hover:text-gray-800">
+                        <item.icon className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />
+                      </div>
+                      <span className="text-[9px] font-semibold transition-colors duration-300 line-clamp-1 text-center max-w-[4rem] text-gray-400">
+                        {item.label}
+                      </span>
+                    </div>
+                  </button>
+                </DrawerTrigger>
+                <DrawerContent className="bg-white px-4 pb-8">
+                  <DrawerHeader className="text-left px-0 pt-4 pb-2">
+                    <DrawerTitle className="text-lg font-black text-gray-900">More Options</DrawerTitle>
+                  </DrawerHeader>
+                  <div className="grid grid-cols-4 gap-3 mt-4">
+                    {overflowItems.map((overItem) => renderItem(overItem, true))}
                   </div>
-                </>
-              ) : (
-                <>
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  <span className={cn('text-[10px] font-medium', active ? 'text-[#920793]' : 'text-gray-400')}>
-                    {item.label}
-                  </span>
-                  {active && (
-                    <span className="absolute top-1 h-1 w-1 rounded-full bg-[#920793]" />
-                  )}
-                </>
-              )}
-            </Link>
-          );
+                </DrawerContent>
+              </Drawer>
+            );
+          }
+          return renderItem(item);
         })}
       </div>
     </nav>

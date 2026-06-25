@@ -60,7 +60,7 @@ function Tier2Step({
       const result = await documentsApi.upload({
         file: idCardFile,
         activateRequestId,
-        documentType: 'ID_CARD_PHOTO',
+        documentType: 'valid_id',
       });
       console.log('[Tier2Step] document upload result:', result);
       idCardDocumentId = result.documentId;
@@ -151,7 +151,7 @@ function Tier2Step({
             <p className="text-[12px] text-gray-400">Tap to capture ID card</p>
           </UploadZone>
         )}
-        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="sr-only"
+        <input ref={inputRef} type="file" accept="image/*"  className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) { setIdCardFile(f); setIdCardPreview(URL.createObjectURL(f)); }
@@ -160,7 +160,7 @@ function Tier2Step({
 
       <button type="submit" disabled={!idCardFile || isSubmitting} className={btnCls}>
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        {uploading ? 'Uploading ID...' : isPending ? 'Submitting...' : 'Complete Tier 2 Upgrade'}
+        {uploading ? 'Uploading ID...' : isPending ? 'Processing Tier 2 upgrade...' : 'Complete Tier 2 Upgrade'}
       </button>
     </form>
   );
@@ -213,7 +213,7 @@ function Tier3Step({
     let locationDocId: string;
     try {
       const [proofResult, locationResult] = await Promise.all([
-        documentsApi.upload({ file: proofFile, activateRequestId, documentType: 'PROOF_OF_ADDRESS' }),
+        documentsApi.upload({ file: proofFile, activateRequestId, documentType: 'utility_bill' }),
         documentsApi.upload({ file: locationFile, activateRequestId, documentType: 'LOCATION_PHOTO' }),
       ]);
       proofDocId = proofResult.documentId;
@@ -264,7 +264,7 @@ function Tier3Step({
       const proofResult = await documentsApi.upload({
         file: proofFile,
         activateRequestId,
-        documentType: 'PROOF_OF_ADDRESS',
+        documentType: 'utility_bill',
       });
       proofDocId = proofResult.documentId;
     } catch {
@@ -357,7 +357,7 @@ function Tier3Step({
               <p className="text-[12px] text-gray-400">Upload proof of address</p>
             </UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only"
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofFile(f); setProofPreview(URL.createObjectURL(f)); } }} />
         </div>
         <button type="button" disabled={!proofFile || !remoteAddress.trim() || isSubmitting} onClick={handleRemoteSubmit} className={btnCls}>
@@ -402,7 +402,7 @@ function Tier3Step({
               <p className="text-[11px] text-gray-400">Utility bill</p>
             </UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only"
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofFile(f); setProofPreview(URL.createObjectURL(f)); } }} />
         </div>
         <div>
@@ -421,7 +421,7 @@ function Tier3Step({
               <p className="text-[11px] text-gray-400">Location photo</p>
             </UploadZone>
           )}
-          <input ref={locationRef} type="file" accept="image/*" capture="environment" className="sr-only"
+          <input ref={locationRef} type="file" accept="image/*"  className="sr-only"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) { setLocationFile(f); setLocationPreview(URL.createObjectURL(f)); } }} />
         </div>
       </div>
@@ -451,7 +451,7 @@ function Tier3Step({
 
       <button type="submit" disabled={!proofFile || !locationFile || !gpsCoords || isSubmitting} className={btnCls}>
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        {uploading ? 'Uploading documents...' : isPending ? 'Submitting...' : 'Complete Tier 3 Upgrade'}
+        {uploading ? 'Uploading documents...' : isPending ? 'Processing Tier 3 upgrade...' : 'Complete Tier 3 Upgrade'}
       </button>
     </form>
   );

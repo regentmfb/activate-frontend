@@ -9,6 +9,7 @@ import {
   Users,
   UserCog,
   FolderOpen,
+  FileText,
   GitPullRequest,
   Banknote,
   Settings,
@@ -53,7 +54,7 @@ const NAV: NavItem[] = [
     icon: LayoutDashboard,
     superAdminOnly: true,
     children: [
-      { name: 'Executive', description: 'Bank-wide overview', href: '/dashboard?view=md' },
+      // { name: 'Executive', description: 'Bank-wide overview', href: '/dashboard?view=md' },
       { name: 'CMO', description: 'Directorate view', href: '/dashboard?view=cmo' },
       { name: 'Team Lead', description: 'Team performance', href: '/dashboard?view=teamLead' },
       { name: 'RM', description: 'Individual metrics', href: '/dashboard?view=rm' },
@@ -61,11 +62,17 @@ const NAV: NavItem[] = [
   },
 
   {
-    name: 'Account Opening',
+    name: 'Create Account',
     href: '/account-opening/select-type',
     icon: FolderOpen,
     permission: 'CAN_OPEN_ACCOUNT',
     dividerBefore: true,
+  },
+  {
+    name: 'Drafts',
+    href: '/drafts',
+    icon: FileText,
+    permission: 'CAN_OPEN_ACCOUNT',
   },
   // {
   //   name: 'Loans',

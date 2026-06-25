@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Users, Smartphone, Wallet, TrendingUp, ChevronRight } from 'lucide-react';
 import { useCustomers } from '../hooks/useCustomers';
+import { usePermissions } from '@src/hooks/usePermissions';
 import { usePinVerification } from '@src/modules/pin/hooks/usePinVerification';
 import { formatCurrency, cn } from '@src/utils';
 import { Customer } from '../types/customers.types';
@@ -36,6 +37,8 @@ export function CustomersList() {
   const router = useRouter();
   const { customers, allCustomers, search, setSearch, isLoading, mobileOnboardedCount, withDepositCount, totalPortfolioValue, portfolioRevealed } = useCustomers();
   const { requirePin } = usePinVerification();
+  const { role } = usePermissions();
+  const isSuperAdmin = role === 'SUPER_ADMIN';
   const [portfolioRevealedLocal, setPortfolioRevealedLocal] = useState(false);
 
   // Use server-revealed value if token is active, otherwise use local toggle
@@ -71,6 +74,11 @@ export function CustomersList() {
       key: 'accountNumber',
       header: 'Account No.',
       render: (c) => <span className="text-gray-600 font-mono text-[13px]">{c.accountNumber ?? '—'}</span>,
+    },
+    {
+      key: 'accountOfficer',
+      header: 'Account Officer',
+      render: (c) => <span className="text-gray-500 whitespace-nowrap text-[13px] font-medium">{c.accountOfficer || '—'}</span>,
     },
     {
       key: 'tier',
@@ -119,6 +127,9 @@ export function CustomersList() {
           <p className="text-[12px] text-gray-500 mt-0.5">
             {ACCOUNT_TYPE_LABELS[customer.accountType]} · {customer.accountNumber ?? '—'}
           </p>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            Officer: <span className="font-medium text-gray-600">{customer.accountOfficer || '—'}</span>
+          </p>
           <div className="flex items-center gap-3 mt-1.5">
             <StatusDot active={customer.mobileOnboarded} label={customer.mobileOnboarded ? 'Mobile' : 'Not onboarded'} />
             <StatusDot active={customer.hasDeposit} label={customer.hasDeposit ? 'Has deposit' : 'No deposit'} />
@@ -132,8 +143,8 @@ export function CustomersList() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-black text-gray-900">My Customers</h1>
-        <p className="text-[14px] text-gray-500 mt-0.5">{allCustomers.length} customers opened through your Activate</p>
+        <h1 className="text-[22px] font-black text-gray-900">{isSuperAdmin ? 'Customers' : 'My Customers'}</h1>
+        <p className="text-[14px] text-gray-500 mt-0.5">{allCustomers.length} {isSuperAdmin ? 'customers in the system' : 'customers opened through your Activate'}</p>
       </div>
 
       {/* Summary cards */}

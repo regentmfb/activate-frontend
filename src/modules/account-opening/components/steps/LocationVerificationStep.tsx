@@ -7,6 +7,7 @@ import { IndividualCurrentFormState } from '../../types/wizard.types';
 type Props = {
   formState: IndividualCurrentFormState;
   onNext: (data: Partial<IndividualCurrentFormState>) => void;
+  isSubmitting?: boolean;
 };
 
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
@@ -20,7 +21,7 @@ function UploadZone({ onClick, children }: { onClick: () => void; children: Reac
   );
 }
 
-export function LocationVerificationStep({ formState, onNext }: Props) {
+export function LocationVerificationStep({ formState, onNext, isSubmitting }: Props) {
   const [proximity, setProximity] = useState<boolean | null>(formState.isProximityConfirmed);
   const [proofUrl, setProofUrl] = useState<string | null>(formState.proofOfAddressUrl);
   const [proofFile, setProofFile] = useState<File | null>(formState.proofOfAddressFile ?? null);
@@ -86,9 +87,9 @@ export function LocationVerificationStep({ formState, onNext }: Props) {
               <Camera className="h-6 w-6 text-gray-300" /><p className="text-[12px] text-gray-400">Upload proof of address</p>
             </UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofUrl(URL.createObjectURL(f)); setProofFile(f); } }} />
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofUrl(URL.createObjectURL(f)); setProofFile(f); } }} />
         </div>
-        <button type="button" disabled={!proofUrl} onClick={() => onNext({ isProximityConfirmed: false, proofOfAddressUrl: proofUrl, proofOfAddressFile: proofFile })} className={btn}>Continue</button>
+        <button type="button" disabled={!proofUrl || isSubmitting} onClick={() => onNext({ isProximityConfirmed: false, proofOfAddressUrl: proofUrl, proofOfAddressFile: proofFile })} className={btn}>{isSubmitting ? 'Submitting...' : 'Continue'}</button>
       </div>
     );
   }
@@ -110,7 +111,7 @@ export function LocationVerificationStep({ formState, onNext }: Props) {
           ) : (
             <UploadZone onClick={() => proofRef.current?.click()}><Camera className="h-5 w-5 text-gray-300" /><p className="text-[11px] text-gray-400">Utility bill</p></UploadZone>
           )}
-          <input ref={proofRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofUrl(URL.createObjectURL(f)); setProofFile(f); } }} />
+          <input ref={proofRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setProofUrl(URL.createObjectURL(f)); setProofFile(f); } }} />
         </div>
         <div>
           <label className={label}>Location Photo</label>
@@ -119,7 +120,7 @@ export function LocationVerificationStep({ formState, onNext }: Props) {
           ) : (
             <UploadZone onClick={() => locationRef.current?.click()}><Camera className="h-5 w-5 text-gray-300" /><p className="text-[11px] text-gray-400">Location photo</p></UploadZone>
           )}
-          <input ref={locationRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setLocationPhotoUrl(URL.createObjectURL(f)); setLocationPhotoFile(f); } }} />
+          <input ref={locationRef} type="file" accept="image/*"  className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setLocationPhotoUrl(URL.createObjectURL(f)); setLocationPhotoFile(f); } }} />
         </div>
       </div>
 
@@ -143,7 +144,7 @@ export function LocationVerificationStep({ formState, onNext }: Props) {
         {gpsError && <p className="text-[12px] text-red-500 mt-1">{gpsError}</p>}
       </div>
 
-      <button type="button" disabled={!canSubmit}
+      <button type="button" disabled={!canSubmit || isSubmitting}
         onClick={() => onNext({
           isProximityConfirmed: true,
           proofOfAddressUrl: proofUrl,
@@ -153,7 +154,7 @@ export function LocationVerificationStep({ formState, onNext }: Props) {
           gpsCoords,
         })}
         className={btn}>
-        Continue
+        {isSubmitting ? 'Submitting...' : 'Continue'}
       </button>
     </div>
   );

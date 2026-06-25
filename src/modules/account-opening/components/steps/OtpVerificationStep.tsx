@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { AlertCircle, ScanFace } from 'lucide-react';
 import { IndividualSavingsFormState } from '../../types/wizard.types';
-import { useSwitchToManual, useVerificationSession } from '@src/modules/identity/hooks/useIdentityVerification';
+import { useSwitchToManual, useVerificationSession, usePictureVerification } from '@src/modules/identity/hooks/useIdentityVerification';
 import { appToast } from '@src/lib/toast';
-import { useQoreIDLiveness } from '../../liveness/useQoreIDLiveness';
+import { useIdentro } from '@src/providers/IdentroProvider';
+// import { FaceCaptureModal } from '../FaceCaptureModal';
 
 type Props = {
   formState: IndividualSavingsFormState;
@@ -18,17 +19,10 @@ const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920
 
 export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }: Props) {
   const { mutate: switchToManual, isPending: isSwitching } = useSwitchToManual();
+  const { mutate: pictureVerification } = usePictureVerification();
   
-  const { triggerLiveness, status: livenessStatus } = useQoreIDLiveness({
-    formState,
-    onSuccess: (imageData) => {
-      onLiveness();
-      onNext({
-        livenessPhotoUrl: imageData,
-        customerPhotoUrl: imageData,
-      });
-    },
-  });
+  const [livenessStatus, setLivenessStatus] = useState<'idle' | 'scanning' | 'verifying' | 'failed' | 'passed'>('idle');
+  const [showFaceModal, setShowFaceModal] = useState(false);
 
   const { data: session } = useVerificationSession(formState.verificationId ?? '', {
     enabled: !!formState.verificationId,
@@ -42,13 +36,72 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
       return; 
     }
     switchToManual(
-      { verificationId: formState.verificationId, reason: 'Customer unable to complete liveness check' },
+      { verificationId: formState.verificationId, reason: 'Customer unable to complete face verification' },
       { onSuccess: () => onManual(), onError: () => onManual() }
     );
   }
 
-  function handleLiveness() {
-    triggerLiveness();
+  const { startLiveness } = useIdentro();
+
+  async function handleLiveness() {
+    if (!formState.verificationId) {
+      appToast.error('No verification session active.');
+      return;
+    }
+    setLivenessStatus('scanning');
+    
+    try {
+      const isBVN = formState.verificationMethod === 'BVN';
+      const result = await startLiveness({
+        serviceType: isBVN ? 'FACE_LIVENESS_BVN' : 'FACE_LIVENESS_NIN',
+        sourceType: isBVN ? 'BVN' : 'NIN',
+        bvn: isBVN ? formState.identityValue : undefined,
+        nin: !isBVN ? formState.identityValue : undefined,
+        consentCaptured: true,
+        consentReference: `CONSENT-${formState.verificationId}`,
+        idempotencyKey: `LIVE-${formState.verificationId}-${Date.now()}`
+      });
+
+      console.log('Identro Liveness Success:', result);
+      const capturedImage = result?.data?.selfieUrl || result?.selfieBase64 || result?.identity?.photo || ''; 
+
+      const livenessScore = Number(result.liveness?.score) || 0;
+      const matchScore = Number(result.match?.score) || 0;
+      
+      // Override Identro's strict threshold (defaults to 80)
+      const isLivenessOk = result.liveness?.passed !== false || livenessScore >= 70;
+      const isMatchOk = result.match?.matched !== false || matchScore >= 70;
+
+      if (result.status === 'FAILED' || !isLivenessOk || !isMatchOk) {
+        setLivenessStatus('failed');
+        
+        let errorMessage = 'Face verification failed.';
+        if (!isLivenessOk) {
+          errorMessage = result.liveness?.message || `Liveness score (${livenessScore}) too low.`;
+        } else if (!isMatchOk) {
+          errorMessage = result.match?.message || `Face match score (${matchScore}) too low.`;
+        } else if (result.message) {
+          errorMessage = result.message;
+        }
+
+        appToast.error(errorMessage);
+        return;
+      }
+      
+      setLivenessStatus('passed');
+      appToast.success('Face verification successful!');
+      
+      onLiveness();
+      onNext({
+        livenessPhotoUrl: capturedImage,
+        customerPhotoUrl: capturedImage,
+      });
+
+    } catch (error: any) {
+      console.error('Identro Liveness Failed:', error);
+      appToast.error(error.message || 'Face verification failed or was cancelled.');
+      setLivenessStatus('failed');
+    }
   }
 
   if (isFailed) {
@@ -77,9 +130,20 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
             onClick={handleLiveness}
             className="flex-1 h-9 rounded-lg text-[13px] font-semibold border border-[#920793] text-[#920793] hover:bg-purple-50 transition-colors disabled:opacity-50"
           >
-            Retry Liveness Check
+            Retry Face Verification
           </button>
         </div>
+        {/* 
+        {showFaceModal && (
+          <FaceCaptureModal
+            onCapture={handleCapture}
+            onClose={() => {
+              setShowFaceModal(false);
+              setLivenessStatus('idle');
+            }}
+          />
+        )}
+        */}
       </div>
     );
   }
@@ -92,9 +156,20 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
           <path fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z" />
         </svg>
         <div className="text-center">
-          <p className="text-[13px] font-semibold text-gray-700">Opening QoreID camera…</p>
+          <p className="text-[13px] font-semibold text-gray-700">Opening camera…</p>
           <p className="text-[12px] text-gray-400 mt-0.5">Please align the customer's face in the camera frame once the scanner loads.</p>
         </div>
+        {/* 
+        {showFaceModal && (
+          <FaceCaptureModal
+            onCapture={handleCapture}
+            onClose={() => {
+              setShowFaceModal(false);
+              setLivenessStatus('idle');
+            }}
+          />
+        )}
+        */}
       </div>
     );
   }
@@ -107,8 +182,8 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
           <path fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z" />
         </svg>
         <div className="text-center">
-          <p className="text-[13px] font-semibold text-gray-700">Verifying liveness check…</p>
-          <p className="text-[12px] text-gray-400 mt-0.5">Checking captured image for biometric spoofing and retrieving customer biodata.</p>
+          <p className="text-[13px] font-semibold text-gray-700">Verifying face check…</p>
+          <p className="text-[12px] text-gray-400 mt-0.5">Checking captured image against national database.</p>
         </div>
       </div>
     );
@@ -117,16 +192,13 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-[14px] font-bold text-gray-900">Liveness Verification</p>
-        <p className="text-[12px] text-gray-500 mt-0.5">
-          Verify the customer&apos;s identity with a live facial scan. This automatically validates their {formState.verificationMethod} against national records.
+        <p className="text-[14px] font-bold text-gray-900">
+          {isSwitching ? 'Manual Verification' : 'Face Verification'}
         </p>
-      </div>
-
-      <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-2">
-        <ScanFace className="h-4 w-4 text-blue-500 shrink-0" />
-        <p className="text-[12px] text-blue-700 font-medium">
-          Powered by <span className="font-bold">QoreID</span> detects biometric spoofing attacks.
+        <p className="text-[12px] text-gray-500 mt-0.5">
+          {isSwitching 
+            ? 'Switching to manual verification mode...'
+            : `Verify the customer's identity with a live facial scan. This automatically validates their ${formState.verificationMethod} against national records.`}
         </p>
       </div>
 
@@ -137,12 +209,12 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
       >
         <ScanFace className="h-10 w-10 text-[#920793]" />
         <p className="text-[13px] font-semibold text-[#920793]">
-          Start Liveness Check
+          Start Face Verification
         </p>
       </button>
 
       <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-2 mt-4">
-        <p className="text-[12px] font-semibold text-amber-800">Cannot use camera or liveness failed?</p>
+        <p className="text-[12px] font-semibold text-amber-800">Cannot use camera or verification failed?</p>
         <p className="text-[12px] text-amber-700">
           You can bypass this step using manual verification. The account will require review by Operations before activation.
         </p>
@@ -157,6 +229,18 @@ export function OtpVerificationStep({ formState, onNext, onManual, onLiveness }:
           </button>
         </div>
       </div>
+      
+      {/* 
+      {showFaceModal && (
+        <FaceCaptureModal
+          onCapture={handleCapture}
+          onClose={() => {
+            setShowFaceModal(false);
+            setLivenessStatus('idle');
+          }}
+        />
+      )}
+      */}
     </div>
   );
 }

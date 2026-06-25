@@ -32,10 +32,14 @@ export const referencesApi = {
   // ── Get all pending references (Operations view) ──────────────────────────────
 
   getPendingReferences: async (): Promise<ReferenceRecord[]> => {
-    const { data } = await http.get<ApiEnvelope<ReferenceRecord[]>>(
+    const { data } = await http.get<ApiEnvelope<any>>(
       '/activate/references/pending-review'
     );
-    return data.data ?? [];
+    // Handle both direct array and paginated { data, meta } structures
+    const result = data.data;
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.data)) return result.data;
+    return [];
   },
 
   // ── Get references filtered by status ────────────────────────────────────────
@@ -44,18 +48,22 @@ export const referencesApi = {
     const url = status
       ? `/activate/references?status=${status}`
       : '/activate/references';
-    const { data } = await http.get<ApiEnvelope<ReferenceRecord[]>>(url);
-    return data.data ?? [];
+    const { data } = await http.get<ApiEnvelope<any>>(url);
+    const result = data.data;
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.data)) return result.data;
+    return [];
   },
-
-  // ── Get references by account request ID ──────────────────────────────────────
 
   getReferencesByAccountId: async (accountId: string): Promise<ReferenceRecord[]> => {
     try {
-      const { data } = await http.get<ApiEnvelope<ReferenceRecord[]>>(
+      const { data } = await http.get<ApiEnvelope<any>>(
         `/activate/accounts/${accountId}/references`
       );
-      return data.data ?? [];
+      const result = data.data;
+      if (Array.isArray(result)) return result;
+      if (result && Array.isArray(result.data)) return result.data;
+      return [];
     } catch {
       return [];
     }

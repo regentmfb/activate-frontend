@@ -156,7 +156,7 @@ export default function SelectAccountTypePage() {
       </button>
 
       <div>
-        <h1 className="text-[22px] font-black text-gray-900">Open Account</h1>
+        <h1 className="text-[22px] font-black text-gray-900">Create Account</h1>
         <p className="text-[14px] text-gray-500 mt-0.5">Select the type of account to open for your customer.</p>
       </div>
 

@@ -60,4 +60,9 @@ export const accountOpeningApi = {
     }
     return Array.isArray(data.data) ? data.data : [];
   },
+
+  updateDetails: async (id: string, payload: any): Promise<any> => {
+    const { data } = await http.post(`/activate/accounts/${id}/details`, payload);
+    return data.data;
+  },
 };

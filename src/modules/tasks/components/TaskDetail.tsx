@@ -411,9 +411,9 @@ export function TaskDetail({ id }: Props) {
                     {task.verification.status || 'N/A'}
                   </Badge>
                 } />
-                <InfoRow label="Face Match Score" value={task.verification.matchScore !== null ? `${task.verification.matchScore}%` : 'N/A'} />
-                <InfoRow label="Liveness Check" value={task.verification.livenessCheckPassed !== null ? (task.verification.livenessCheckPassed ? 'PASSED' : 'FAILED') : 'N/A'} />
-                <InfoRow label="Liveness Score" value={task.verification.livenessScore !== null ? `${task.verification.livenessScore}%` : 'N/A'} />
+                <InfoRow label="Face Match Score" value={task.verification.matchScore != null ? `${task.verification.matchScore}%` : <span className="text-gray-400 italic font-normal">Not provided</span>} />
+                <InfoRow label="Liveness Check" value={task.verification.livenessCheckPassed != null ? (task.verification.livenessCheckPassed ? 'PASSED' : 'FAILED') : <span className="text-gray-400 italic font-normal">Not provided</span>} />
+                <InfoRow label="Liveness Score" value={task.verification.livenessScore != null ? `${task.verification.livenessScore}%` : <span className="text-gray-400 italic font-normal">Not provided</span>} />
               </div>
             </div>
           )}
@@ -459,27 +459,29 @@ export function TaskDetail({ id }: Props) {
           )}
 
           {/* Generic Task Details Metadata */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100">
-              <p className="text-[14px] font-bold text-gray-900">Task Metadata</p>
+          {false && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-gray-100">
+                <p className="text-[14px] font-bold text-gray-900">Task Metadata</p>
+              </div>
+              <div className="px-5 py-1">
+                <InfoRow label="Task ID" value={<span className="font-mono text-[12px]">{task?.id}</span>} />
+                {task?.taskType && (
+                  <InfoRow label="Task Type" value={task?.taskType} />
+                )}
+                {task?.assignedTo && (
+                  <InfoRow label="Assigned To" value={task?.assignedTo?.staffName} />
+                )}
+                {task?.assignedBy && (
+                  <InfoRow label="Assigned By" value={task?.assignedBy?.staffName} />
+                )}
+                {task?.createdAt && (
+                  <InfoRow label="Created" value={task?.createdAt ? new Date(task?.createdAt as string).toLocaleString('en-NG') : 'N/A'} />
+                )}
+                <InfoRow label="Last Updated" value={task?.updatedAt ? new Date(task?.updatedAt as string).toLocaleString('en-NG') : 'N/A'} />
+              </div>
             </div>
-            <div className="px-5 py-1">
-              <InfoRow label="Task ID" value={<span className="font-mono text-[12px]">{task.id}</span>} />
-              {task.taskType && (
-                <InfoRow label="Task Type" value={task.taskType} />
-              )}
-              {task.assignedTo && (
-                <InfoRow label="Assigned To" value={task.assignedTo.staffName} />
-              )}
-              {task.assignedBy && (
-                <InfoRow label="Assigned By" value={task.assignedBy.staffName} />
-              )}
-              {task.createdAt && (
-                <InfoRow label="Created" value={new Date(task.createdAt).toLocaleString('en-NG')} />
-              )}
-              <InfoRow label="Last Updated" value={new Date(task.updatedAt).toLocaleString('en-NG')} />
-            </div>
-          </div>
+          )}
 
         </div>
 

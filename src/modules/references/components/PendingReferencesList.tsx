@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 import { DataView, ColumnDef } from '@/src/components/ui/DataView';
-import { usePendingReferences } from '../hooks/useReferences';
+import { useAllReferences } from '../hooks/useReferences';
 import { cn } from '@/src/utils';
 import type { ReferenceRecord } from '../types/references.types';
 
@@ -54,17 +54,17 @@ function groupByAccount(references: ReferenceRecord[]): AccountGroup[] {
     const key = ref.activateRequestId;
     const req = ref.accountRequest;
     const cust = ref.customer;
-    const customerName = [cust.firstName, cust.middleName, cust.lastName].filter(Boolean).join(' ');
+    const customerName = cust ? [cust.firstName, cust.middleName, cust.lastName].filter(Boolean).join(' ') : 'Unknown Customer';
 
     if (!map.has(key)) {
       map.set(key, {
         id: key,
         activateRequestId: key,
-        requestNumber: req.requestNumber,
-        accountType: `${req.accountCategory} ${req.accountType}`,
+        requestNumber: req?.requestNumber || 'Unknown',
+        accountType: req ? `${req.accountCategory} ${req.accountType}` : 'Unknown',
         customerName,
-        rmName: req.rm.staffName,
-        createdAt: req.createdAt,
+        rmName: req?.rm?.staffName || 'Unknown RM',
+        createdAt: req?.createdAt || new Date().toISOString(),
         pendingCount: 0,
         passedCount: 0,
         failedCount: 0,
@@ -192,24 +192,37 @@ function AccountGroupColumns(router: ReturnType<typeof useRouter>): ColumnDef<Ac
 
 export function PendingReferencesList() {
   const router = useRouter();
-  const { data: references = [], isLoading } = usePendingReferences();
+  const { data: references = [], isLoading } = useAllReferences();
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'PASSED' | 'FAILED'>('all');
+  
+  console.log('[PendingReferencesList] raw references from API:', references);
 
   // Ensure references is always an array before using array methods
   const referencesArray = Array.isArray(references) ? references : [];
 
-  const filtered = filter === 'all' ? referencesArray : referencesArray.filter(r => r.status === filter);
-  const groups = groupByAccount(filtered);
+  // Group all references into accounts first
+  const allGroups = groupByAccount(referencesArray);
+
+  // Categorize accounts
+  const pendingGroups = allGroups.filter(g => g.pendingCount > 0);
+  const failedGroups = allGroups.filter(g => g.failedCount > 0 && g.pendingCount === 0);
+  const passedGroups = allGroups.filter(g => g.passedCount === g.total && g.total > 0);
+
+  // Determine which groups to show based on the active tab
+  let visibleGroups = allGroups;
+  if (filter === 'PENDING') visibleGroups = pendingGroups;
+  else if (filter === 'PASSED') visibleGroups = passedGroups;
+  else if (filter === 'FAILED') visibleGroups = failedGroups;
 
   return (
     <div className="space-y-4">
       {/* Filter tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
-          { key: 'all',    label: 'All',      count: referencesArray.length },
-          { key: 'PENDING', label: 'Pending',  count: referencesArray.filter(r => r.status === 'PENDING').length },
-          { key: 'PASSED',  label: 'Approved', count: referencesArray.filter(r => r.status === 'PASSED').length },
-          { key: 'FAILED',  label: 'Rejected', count: referencesArray.filter(r => r.status === 'FAILED').length },
+          { key: 'all',    label: 'All',      count: allGroups.length },
+          { key: 'PENDING', label: 'Pending',  count: pendingGroups.length },
+          { key: 'PASSED',  label: 'Approved', count: passedGroups.length },
+          { key: 'FAILED',  label: 'Rejected', count: failedGroups.length },
         ].map(tab => (
           <button
             key={tab.key}
@@ -227,12 +240,12 @@ export function PendingReferencesList() {
       </div>
 
       <DataView
-        data={groups}
+        data={visibleGroups}
         columns={AccountGroupColumns(router)}
         renderCard={(group) => <AccountGroupCard group={group} />}
         keyExtractor={(g) => g.id}
-        title={`${groups.length} ${groups.length === 1 ? 'Account' : 'Accounts'}`}
-        emptyMessage="No references found."
+        title={`${visibleGroups.length} ${visibleGroups.length === 1 ? 'Account' : 'Accounts'}`}
+        emptyMessage="No accounts found."
         isLoading={isLoading}
         gridCols="grid-cols-1 sm:grid-cols-2"
       />

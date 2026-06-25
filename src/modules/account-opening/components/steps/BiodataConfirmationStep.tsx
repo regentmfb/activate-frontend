@@ -12,7 +12,7 @@ type Props = {
   onNext: (data: Partial<IndividualSavingsFormState>) => void;
 };
 
-const field = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-gray-50 border border-gray-200 outline-none focus:border-[#920793] transition-colors`;
+const field = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-white border border-gray-200 outline-none focus:border-[#920793] transition-colors`;
 const readonlyField = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-gray-100 border border-gray-200 outline-none cursor-default`;
 const label = `block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1`;
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
@@ -31,6 +31,7 @@ export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Pro
   const { register, handleSubmit, reset } = useForm<Biodata & { email: string }>({
     defaultValues: {
       ...(formState.biodata ?? {}),
+      dob: formState.biodata?.dob ? formState.biodata.dob.substring(0, 10) : '',
       email: formState.biodata?.email ?? '',
     },
   });
@@ -42,18 +43,25 @@ export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Pro
       firstName: verifiedFields.firstName ?? '',
       lastName: verifiedFields.lastName ?? '',
       middleName: verifiedFields.middleName ?? '',
-      dob: verifiedFields.dateOfBirth ?? '',
+      dob: verifiedFields.dateOfBirth ? verifiedFields.dateOfBirth.substring(0, 10) : '',
       gender: verifiedFields.gender ?? '',
       phone: verifiedFields.phoneNumber ?? '',
       email: verifiedFields.email ?? formState.biodata?.email ?? '',
       address: verifiedFields.address ?? '',
     });
-  }, [verifiedFields, reset]);
+  }, [verifiedFields, reset, formState.biodata?.email]);
 
   function onSubmit(data: Biodata & { email: string }) {
     const biodata: Biodata = { ...data };
 
-    if (!formState.verificationId || isManualMode) {
+    const isPastAllowedConfirm = session?.status && [
+      'PICTURE_VERIFIED',
+      'MANUAL_MODE_REQUIRED',
+      'MANUAL_REVIEW_PENDING',
+      'COMPLETED'
+    ].includes(session.status);
+
+    if (!formState.verificationId || isManualMode || isPastAllowedConfirm) {
       onNext({ biodata });
       return;
     }
@@ -76,7 +84,16 @@ export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Pro
             } : biodata,
           });
         },
-        onError: (err) => appToast.error(err.message),
+        onError: (err) => {
+          const isStatusConflict = err.message?.includes('Verification session must be') || 
+                                  err.message?.includes('stage to confirm details');
+          if (isStatusConflict) {
+            // Already past confirmation stage, proceed safely
+            onNext({ biodata });
+          } else {
+            appToast.error(err.message);
+          }
+        },
       }
     );
   }
@@ -149,7 +166,15 @@ export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Pro
         </div>
         <div>
           <label className={label}>Gender</label>
-          <input className={isManualMode ? field : readonlyField} {...register('gender')} readOnly={!isManualMode} />
+          {isManualMode ? (
+            <select className={field} {...register('gender')}>
+              <option value="">Select Gender</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
+          ) : (
+            <input className={readonlyField} {...register('gender')} readOnly />
+          )}
         </div>
         <div>
           <label className={label}>Phone</label>

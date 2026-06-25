@@ -11,7 +11,7 @@ import { cn } from '@src/utils';
 type DashboardView = 'md' | 'cmo' | 'teamLead' | 'rm';
 
 const TABS: Array<{ key: DashboardView; label: string; icon: React.ElementType; description: string }> = [
-  { key: 'md',       label: 'Executive', icon: Award,          description: 'Bank-wide overview' },
+  // { key: 'md',       label: 'Executive', icon: Award,          description: 'Bank-wide overview' },
   { key: 'cmo',      label: 'CMO',       icon: Building2,      description: 'Directorate view' },
   { key: 'teamLead', label: 'Team Lead', icon: Users,          description: 'Team performance' },
   { key: 'rm',       label: 'RM',        icon: LayoutDashboard, description: 'Individual metrics' },
@@ -20,7 +20,7 @@ const TABS: Array<{ key: DashboardView; label: string; icon: React.ElementType; 
 export function SuperAdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeView = (searchParams.get('view') as DashboardView) ?? 'md';
+  const activeView = (searchParams.get('view') as DashboardView) ?? 'cmo';
 
   function switchView(key: DashboardView) {
     router.push(`/dashboard?view=${key}`);

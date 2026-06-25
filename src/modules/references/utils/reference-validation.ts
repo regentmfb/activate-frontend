@@ -30,21 +30,19 @@ export function validateReference(reference: ReferenceFormData): ReferenceValida
     errors.accountNumber = 'Account number must be exactly 10 digits';
   }
 
-  // Email validation
-  if (!reference.email?.trim()) {
-    errors.email = 'Email is required';
-  } else {
+  // Email validation (optional)
+  if (reference.email?.trim()) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(reference.email.trim())) {
       errors.email = 'Please enter a valid email address';
     }
   }
 
-  // Phone number validation
-  if (!reference.phoneNumber?.trim()) {
-    errors.phoneNumber = 'Phone number is required';
-  } else if (!/^\d{11}$/.test(reference.phoneNumber.trim())) {
-    errors.phoneNumber = 'Phone number must be exactly 11 digits';
+  // Phone number validation (optional)
+  if (reference.phoneNumber?.trim()) {
+    if (!/^\d{10,11}$/.test(reference.phoneNumber.trim())) {
+      errors.phoneNumber = 'Phone number must be 10 or 11 digits';
+    }
   }
 
   // Document URL validation

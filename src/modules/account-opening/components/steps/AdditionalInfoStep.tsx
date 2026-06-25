@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { additionalInfoSchema, AdditionalInfoSchemaValues } from '../../schema/account-opening.schema';
 import { IndividualCurrentFormState } from '../../types/wizard.types';
+import { Upload } from 'lucide-react';
 
 type Props = {
   formState: IndividualCurrentFormState;
@@ -16,6 +18,8 @@ const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920
 
 export function AdditionalInfoStep({ formState, onNext }: Props) {
   const secondaryMethod = formState.verificationMethod === 'BVN' ? 'NIN' : 'BVN';
+  const [signatureFile, setSignatureFile] = useState<File | null>(formState.signatureFile);
+  const [bvnNinEvidenceFile, setBvnNinEvidenceFile] = useState<File | null>(formState.bvnNinEvidenceFile);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AdditionalInfoSchemaValues>({
     resolver: zodResolver(additionalInfoSchema),
@@ -29,12 +33,15 @@ export function AdditionalInfoStep({ formState, onNext }: Props) {
   });
 
   function onSubmit(data: AdditionalInfoSchemaValues) {
+    if (!signatureFile || !bvnNinEvidenceFile) return;
     onNext({
       email: data.email,
       secondPhone: data.secondPhone,
       secondaryIdMethod: data.secondaryIdMethod as 'BVN' | 'NIN',
       secondaryIdValue: data.secondaryIdValue,
       address: data.address,
+      signatureFile,
+      bvnNinEvidenceFile,
     });
   }
 
@@ -78,9 +85,53 @@ export function AdditionalInfoStep({ formState, onNext }: Props) {
             {...register('address')} />
           {errors.address && <p className="text-[12px] text-red-500 mt-1">{errors.address.message}</p>}
         </div>
+
+        {/* Signature Upload */}
+        <div className="col-span-2 space-y-1">
+          <label className={label}>Signature Image (Required)</label>
+          <div className="relative flex items-center justify-between border border-dashed border-gray-300 rounded-lg p-3 hover:bg-purple-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-gray-400" />
+              <span className="text-[12px] text-gray-600">
+                {signatureFile ? signatureFile.name : 'Upload signature image (JPEG, PNG)'}
+              </span>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setSignatureFile(file);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* BVN/NIN Evidence Upload */}
+        <div className="col-span-2 space-y-1">
+          <label className={label}>BVN/NIN Verification Evidence (Required)</label>
+          <div className="relative flex items-center justify-between border border-dashed border-gray-300 rounded-lg p-3 hover:bg-purple-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-gray-400" />
+              <span className="text-[12px] text-gray-600">
+                {bvnNinEvidenceFile ? bvnNinEvidenceFile.name : 'Upload PDF or image evidence'}
+              </span>
+            </div>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setBvnNinEvidenceFile(file);
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      <button type="submit" className={btn}>Continue</button>
+      <button type="submit" disabled={!signatureFile || !bvnNinEvidenceFile} className={btn}>Continue</button>
     </form>
   );
 }

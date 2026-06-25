@@ -87,10 +87,10 @@ export const WORKFLOW_STATUS_STYLES: Record<string, { label: string; cls: string
 
 export const SAVINGS_STEP_LABELS: Record<string, string> = {
   IDENTITY_INPUT:    'Identity',
-  OTP_VERIFICATION:  'Liveness',
+  OTP_VERIFICATION:  'Face Verification',
   FACE_PROCESSING:   'Face Match',
   BIODATA_CONFIRMATION: 'Biodata',
-  LIVENESS_CHECK:    'Liveness',
+  LIVENESS_CHECK:    'Face Verification',
   PHOTO_CAPTURE:     'Photo',
   TIER1_SUCCESS:     'Tier 1',
   TIER1_FAILED:      'Tier 1',
@@ -108,7 +108,7 @@ export const SAVINGS_STEP_DESCRIPTIONS: Record<string, string> = {
   OTP_VERIFICATION:     "Verify the customer's identity with a live facial scan.",
   FACE_PROCESSING:      'Matching face against national database…',
   BIODATA_CONFIRMATION: 'Review and confirm the customer details.',
-  LIVENESS_CHECK:       'Run QoreID liveness verification.',
+  LIVENESS_CHECK:       'Run face verification.',
   PHOTO_CAPTURE:        'Take a clear photo of the customer.',
   TIER1_SUCCESS:        'Tier 1 account created successfully.',
   TIER1_FAILED:         'Tier 1 account creation failed.',
@@ -130,10 +130,10 @@ export const SAVINGS_RESULT_STEPS = new Set([
 
 export const CURRENT_STEP_LABELS: Record<string, string> = {
   IDENTITY_INPUT:       'Identity',
-  OTP_VERIFICATION:     'Liveness',
+  OTP_VERIFICATION:     'Face Verification',
   FACE_PROCESSING:      'Face Match',
   BIODATA_CONFIRMATION: 'Biodata',
-  LIVENESS_CHECK:       'Liveness',
+  LIVENESS_CHECK:       'Face Verification',
   ADDITIONAL_INFO:      'More Info',
   PHOTO_CAPTURE:        'Photo',
   ID_CARD_CAPTURE:      'ID Card',
@@ -149,7 +149,7 @@ export const CURRENT_STEP_DESCRIPTIONS: Record<string, string> = {
   OTP_VERIFICATION:     "Verify the customer's identity with a live facial scan.",
   FACE_PROCESSING:      'Matching face against national database…',
   BIODATA_CONFIRMATION: 'Review and confirm the customer details.',
-  LIVENESS_CHECK:       'Run QoreID liveness verification.',
+  LIVENESS_CHECK:       'Run face verification.',
   ADDITIONAL_INFO:      'Fill in remaining customer details.',
   PHOTO_CAPTURE:        'Take a clear photo of the customer.',
   ID_CARD_CAPTURE:      "Capture the customer's official ID card.",
