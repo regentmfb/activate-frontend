@@ -1,15 +1,17 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Camera, RefreshCw, CheckCircle2, ScanFace, Upload } from 'lucide-react';
 import { DocumentUploadModal } from '@/src/modules/documents/components/DocumentUploadModal';
 import { IndividualSavingsFormState } from '../../types/wizard.types';
 import { FaceCaptureModal } from '../FaceCaptureModal';
+import { useVerificationSession } from '@src/modules/identity/hooks/useIdentityVerification';
 
 type Props = {
   formState: any;
   onNext: (data: { customerPhotoUrl: string | null; customerPhotoFile?: File | null }) => void;
   isSubmitting?: boolean;
+  setStepMessage?: (msg: { type: 'success' | 'error' | 'info'; title: string; description: string }) => void;
 };
 
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
@@ -26,24 +28,73 @@ function dataURLtoFile(dataurl: string, filename: string): File {
   return new File([u8arr], filename, { type: mime });
 }
 
-export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
-  // Check if liveness photo exists — if so, pre-fill
-  const hasLivenessPhoto = !!formState.livenessPhotoUrl;
-  const [photoUrl, setPhotoUrl] = useState<string | null>(
-    formState.customerPhotoUrl ?? formState.livenessPhotoUrl ?? null
-  );
+export function PhotoCaptureStep({ formState, onNext, isSubmitting, setStepMessage }: Props) {
+  const { data: session } = useVerificationSession(formState.verificationId ?? '', {
+    enabled: !!formState.verificationId,
+  });
+
+  const backendPhoto = session?.selfieImageUrl || session?.verifiedFields?.photo || session?.verifiedFields?.photoUrl;
+  
+  // Use customerPhotoUrl, livenessPhotoUrl, or backendPhoto
+  const initialPhotoUrl = formState.customerPhotoUrl || formState.livenessPhotoUrl || backendPhoto || null;
+  const hasLivenessPhoto = !!initialPhotoUrl;
+
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initialPhotoUrl);
+  
+  useEffect(() => {
+    console.log('PhotoCaptureStep DEBUG:', {
+      formStatePhotoUrl: formState.customerPhotoUrl,
+      formStateLivenessUrl: formState.livenessPhotoUrl,
+      sessionSelfieUrl: session?.selfieImageUrl,
+      sessionVerifiedPhoto: session?.verifiedFields?.photo,
+      backendPhoto,
+      initialPhotoUrl,
+      currentPhotoUrl: photoUrl,
+    });
+  }, [formState, session, backendPhoto, initialPhotoUrl, photoUrl]);
+
   const [photoFile, setPhotoFile] = useState<File | null>(formState.customerPhotoFile ?? null);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const usedFace = formState.verificationMethod === 'FACE';
+  // Sync photoUrl if backendPhoto loads later
+  useEffect(() => {
+    if (!photoUrl && backendPhoto) {
+      setPhotoUrl(backendPhoto);
+    }
+  }, [backendPhoto, photoUrl]);
 
-  function handleFileCapture(e: React.ChangeEvent<HTMLInputElement>) {
+  const usedFace = formState.verificationMethod === 'FACE' || formState.useLivenessMode;
+
+  const [isUploadingNative, setIsUploadingNative] = useState(false);
+
+  async function handleFileCapture(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
       setPhotoUrl(URL.createObjectURL(file));
       setPhotoFile(file);
+      
+      // Upload immediately for draft persistence
+      try {
+        setIsUploadingNative(true);
+        const { documentsApi } = await import('@src/modules/documents/api/documents.api');
+        const result = await documentsApi.upload({
+          file,
+          activateRequestId: formState.accountRequestId || 'temp-id',
+          customerId: formState.accountRequestId || 'temp-customer',
+          documentType: 'CUSTOMER_PHOTO',
+          source: 'CAMERA',
+        });
+        if (result && result.url) {
+          setPhotoUrl(result.url);
+          setPhotoFile(null); // File is uploaded, URL is ready to persist
+        }
+      } catch (err) {
+        console.error('Failed to auto-upload camera photo', err);
+      } finally {
+        setIsUploadingNative(false);
+      }
     }
   }
 
@@ -145,11 +196,11 @@ export function PhotoCaptureStep({ formState, onNext, isSubmitting }: Props) {
 
         <button
           type="button"
-          disabled={!photoUrl || isSubmitting}
+          disabled={!photoUrl || isSubmitting || isUploadingNative}
           onClick={() => onNext({ customerPhotoUrl: photoUrl, customerPhotoFile: photoFile })}
           className={btn}
         >
-          {isSubmitting ? 'Submitting…' : 'Continue'}
+          {isSubmitting || isUploadingNative ? 'Submitting…' : 'Save and Continue'}
         </button>
       </div>
 

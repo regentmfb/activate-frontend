@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@src/lib/api-client';
-import { toast } from 'sonner';
+import { appToast } from '@src/lib/toast';
 
 export type ActivateDraft = {
   id: string;
@@ -39,7 +39,7 @@ export function useSaveDraft() {
       queryClient.invalidateQueries({ queryKey: draftsKeys.lists() });
     },
     onError: () => {
-      toast.error('Failed to save draft');
+      appToast.error('Failed to save draft');
     },
   });
 }
@@ -56,7 +56,7 @@ export function useDeleteDraft() {
       queryClient.invalidateQueries({ queryKey: draftsKeys.lists() });
     },
     onError: () => {
-      toast.error('Failed to delete draft');
+      appToast.error('Failed to delete draft');
     },
   });
 }

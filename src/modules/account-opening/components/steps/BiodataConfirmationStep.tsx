@@ -10,6 +10,7 @@ type Props = {
   formState: IndividualSavingsFormState;
   isManualMode: boolean;
   onNext: (data: Partial<IndividualSavingsFormState>) => void;
+  setStepMessage?: (msg: { type: 'success' | 'error' | 'info'; title: string; description: string }) => void;
 };
 
 const field = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-white border border-gray-200 outline-none focus:border-[#920793] transition-colors`;
@@ -17,7 +18,7 @@ const readonlyField = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-g
 const label = `block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1`;
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
 
-export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Props) {
+export function BiodataConfirmationStep({ formState, isManualMode, onNext, setStepMessage }: Props) {
   const { mutate: confirmBiodata, isPending } = useConfirmBiodata();
 
   // Fetch the session to get verifiedFields populated by the backend after OTP
@@ -181,13 +182,13 @@ export function BiodataConfirmationStep({ formState, isManualMode, onNext }: Pro
           <input type="tel" className={isManualMode ? field : readonlyField} {...register('phone')} readOnly={!isManualMode} />
         </div>
         <div className="col-span-2">
-          <label className={label}>Email (optional)</label>
+          <label className={label}>Email</label>
           <input type="email" className={field} {...register('email')} />
         </div>
       </div>
 
       <button type="submit" disabled={isPending} className={btn}>
-        {isPending ? 'Confirming…' : isManualMode ? 'Submit & Continue' : 'Confirm & Continue'}
+        {isPending ? 'Confirming…' : 'Save and Continue'}
       </button>
     </form>
   );

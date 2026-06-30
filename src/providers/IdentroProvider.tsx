@@ -83,22 +83,38 @@ export function IdentroProvider({ children }: { children: React.ReactNode }) {
             request={requestParams}
             handlers={{
               async createSession(req: any) {
-                const res = await apiClient.post('/identity/liveness/sessions', req);
-                console.log('Identro createSession RAW response:', res.data);
-                const payload = res.data?.data || res.data;
-                const unwrapped = payload?.reference ? payload : payload?.data?.reference ? payload.data : payload;
-                console.log('Identro createSession UNWRAPPED payload:', unwrapped);
-                return unwrapped;
+                try {
+                  const res = await apiClient.post('/identity/liveness/sessions', req);
+                  console.log('Identro createSession RAW response:', res.data);
+                  const payload = res.data?.data || res.data;
+                  const unwrapped = payload?.reference ? payload : payload?.data?.reference ? payload.data : payload;
+                  console.log('Identro createSession UNWRAPPED payload:', unwrapped);
+                  return unwrapped;
+                } catch (error: any) {
+                  handleError(error);
+                  throw error;
+                }
               },
               async getCredentials(reference: string, session: any) {
-                const res = await apiClient.post(`/identity/liveness/sessions/${reference}/credentials`, { session });
-                const payload = res.data?.data || res.data;
-                return payload?.credentials ? payload : payload?.data?.credentials ? payload.data : payload;
+                try {
+                  const res = await apiClient.post(`/identity/liveness/sessions/${reference}/credentials`, { session });
+                  const payload = res.data?.data || res.data;
+                  return payload?.credentials ? payload : payload?.data?.credentials ? payload.data : payload;
+                } catch (error: any) {
+                  handleError(error);
+                  throw error;
+                }
               },
               async completeSession(reference: string, session: any, payloadParams: any) {
-                const res = await apiClient.post(`/identity/liveness/sessions/${reference}/complete`, payloadParams);
-                const payload = res.data?.data || res.data;
-                return payload?.status ? payload : payload?.data?.status ? payload.data : payload;
+                try {
+                  const res = await apiClient.post(`/identity/liveness/sessions/${reference}/complete`, payloadParams);
+                  const payload = res.data?.data || res.data;
+                  return payload?.status ? payload : payload?.data?.status ? payload.data : payload;
+                } catch (error: any) {
+                  handleError(error);
+                  // We also return a mock FAILED payload just in case the component relies on it before unmounting
+                  return { status: 'FAILED', message: error.message };
+                }
               }
             }}
             onCompleted={handleCompleted}

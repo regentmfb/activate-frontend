@@ -52,10 +52,8 @@ export function useSubmitReferences() {
   return useMutation({
     mutationFn: ({ accountId, payload }: { accountId: string; payload: SubmitReferencesPayload }) =>
       referencesApi.submitReferences(accountId, payload),
-    onSuccess: (result, { payload }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['references'] });
-      const count = result?.referencesCount ?? payload.references?.length ?? 1;
-      appToast.success(`${count} reference${count > 1 ? 's' : ''} submitted successfully`);
     },
     onError: (error: Error) => {
       appToast.error(error.message || 'Failed to submit references');

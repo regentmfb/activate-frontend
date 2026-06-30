@@ -13,9 +13,10 @@ type Props = {
   formState: IndividualCurrentFormState;
   onNext: (data: Partial<IndividualCurrentFormState>) => void;
   isSubmitting?: boolean;
+  setStepMessage?: (msg: { type: 'success' | 'error' | 'info'; title: string; description: string }) => void;
 };
 
-export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) {
+export function ReferenceUploadStep({ formState, onNext, isSubmitting, setStepMessage }: Props) {
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [showResubmitModal, setShowResubmitModal] = useState(false);
   const [selectedRefForResubmit, setSelectedRefForResubmit] = useState<any>(null);
@@ -70,7 +71,7 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
               onClick={handleSubmitReferences}
               disabled={!formState.accountRequestId}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-[12px] h-8"
+              className="bg-[#920793] hover:opacity-90 text-white text-[12px] h-8"
             >
               <Plus className="w-3 h-3 mr-1" />
               Add References
@@ -84,7 +85,7 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
                 onClick={handleSubmitReferences}
                 variant="outline"
                 size="sm"
-                className="text-[11px] h-7"
+                className="text-[11px] h-7 text-[#920793] border-[#920793]/30 hover:bg-[#920793]/5"
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Add More
@@ -92,15 +93,20 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
             </div>
 
             <div className="space-y-2">
-              {references.map((reference, idx) => (
+              {references.map((reference, idx) => {
+                const isPlaceholder = reference.bankName === 'Pending Review';
+                const displayName = isPlaceholder ? reference.fullName.replace(' (Pending Review)', '') : reference.fullName;
+                const displayBank = isPlaceholder ? 'Pending Extraction from Form' : reference.bankName;
+
+                return (
                 <div
                   key={'id' in reference ? reference.id : idx}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div>
-                    <p className="text-[12px] font-medium text-gray-900">{reference.fullName}</p>
+                    <p className="text-[12px] font-medium text-gray-900">{displayName}</p>
                     <p className="text-[11px] text-gray-600">
-                      {reference.bankName}
+                      {displayBank}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -132,7 +138,8 @@ export function ReferenceUploadStep({ formState, onNext, isSubmitting }: Props) 
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Status Summary */}

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
   Target,
+  Server,
 } from 'lucide-react';
 import { cn } from '@/src/utils';
 import { type Permission } from '@/src/constants/permissions';
@@ -41,6 +42,7 @@ type NavItem = {
   dividerBefore?: boolean;
   superAdminOnly?: boolean;
   targetsSetterOnly?: boolean;
+  adminOrOpsOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -80,18 +82,18 @@ const NAV: NavItem[] = [
   //   icon: Banknote,
   //   permission: 'CAN_SUBMIT_LOAN',
   // },
-  {
-    name: 'Workflow',
-    icon: GitPullRequest,
-    permission: 'CAN_REVIEW_WORKFLOW',
-    children: [
-      // { name: 'Reviews', href: '/workflow/reviews', permission: 'CAN_REVIEW_WORKFLOW' },
-      { name: 'Compliance', href: '/workflow/compliance', permission: 'CAN_REVIEW_WORKFLOW' },
-      { name: 'Manual Verifications', href: '/workflow/manual-verifications', permission: 'CAN_REVIEW_WORKFLOW' },
-      { name: 'Lien Requests', href: '/workflow/lien-requests' },
-      { name: 'References', href: '/operations/references', permission: 'CAN_REVIEW_WORKFLOW' },
-    ],
-  },
+  // {
+  //   name: 'Workflow',
+  //   icon: GitPullRequest,
+  //   permission: 'CAN_REVIEW_WORKFLOW',
+  //   children: [
+  //     // { name: 'Reviews', href: '/workflow/reviews', permission: 'CAN_REVIEW_WORKFLOW' },
+  //     { name: 'Compliance', href: '/workflow/compliance', permission: 'CAN_REVIEW_WORKFLOW' },
+  //     { name: 'Manual Verifications', href: '/workflow/manual-verifications', permission: 'CAN_REVIEW_WORKFLOW' },
+  //     { name: 'Lien Requests', href: '/workflow/lien-requests' },
+  //     { name: 'References', href: '/operations/references', permission: 'CAN_REVIEW_WORKFLOW' },
+  //   ],
+  // },
 
   {
     name: 'Customers',
@@ -116,6 +118,12 @@ const NAV: NavItem[] = [
     icon: UserCog,
     superAdminOnly: true,
   },
+  {
+    name: 'Core Sync',
+    href: '/settings/core-sync',
+    icon: Server,
+    adminOrOpsOnly: true,
+  },
 
   // {
   //   name: 'Settings',
@@ -138,6 +146,7 @@ function NavLinks({ onClose, collapsed = false }: { onClose: () => void; collaps
   const isSuperAdmin = allRoleStrings.includes('COMPANY') || allRoleStrings.includes('SUPERADMIN');
   const isCmo = allRoleStrings.includes('CMO') || allRoleStrings.includes('ACTIVATECMO') || allRoleStrings.includes('CHIEFMARKETINGOFFICER');
   const isTargetSetter = isSuperAdmin || isCmo;
+  const isAdminOrOps = isSuperAdmin || allRoleStrings.includes('OPERATIONS') || allRoleStrings.includes('INTERNALCONTROL');
 
   function canSee(item: NavItem | NavChild): boolean {
     if (!item.permission) return true;
@@ -148,6 +157,7 @@ function NavLinks({ onClose, collapsed = false }: { onClose: () => void; collaps
     // Show super-admin dashboard submenu only to super admins; hide regular dashboard link for super admins
     if (item.superAdminOnly && !isSuperAdmin) return null;
     if (item.targetsSetterOnly && !isTargetSetter) return null;
+    if (item.adminOrOpsOnly && !isAdminOrOps) return null;
     if (!item.superAdminOnly && item.name === 'Dashboard' && item.href && isSuperAdmin) return null;
 
     if (item.children) {

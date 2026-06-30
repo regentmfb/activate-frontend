@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { generateClientReference } from '@src/utils';
 import { CurrentWizardStep, IndividualCurrentFormState } from '../types/wizard.types';
@@ -13,13 +13,16 @@ const STEPS: CurrentWizardStep[] = [
   'IDENTITY_INPUT',
   'OTP_VERIFICATION',
   'BIODATA_CONFIRMATION',
-  'ADDITIONAL_INFO',
   'PHOTO_CAPTURE',
-  'ID_CARD_CAPTURE',
-  'LOCATION_VERIFICATION',
   'REFERENCE_UPLOAD',
-  'SUBMIT_SUCCESS',
-  'SUBMIT_FAILED',
+  'TIER1_SUCCESS',
+  'TIER1_FAILED',
+  'TIER2_UPGRADE',
+  'TIER2_SUCCESS',
+  'TIER2_FAILED',
+  'TIER3_UPGRADE',
+  'TIER3_SUCCESS',
+  'TIER3_FAILED',
   'COMPLETE',
 ];
 
@@ -27,11 +30,11 @@ const PROGRESS_STEPS: CurrentWizardStep[] = [
   'IDENTITY_INPUT',
   'OTP_VERIFICATION',
   'BIODATA_CONFIRMATION',
-  'ADDITIONAL_INFO',
   'PHOTO_CAPTURE',
-  'ID_CARD_CAPTURE',
-  'LOCATION_VERIFICATION',
   'REFERENCE_UPLOAD',
+  'TIER1_SUCCESS',
+  'TIER2_UPGRADE',
+  'TIER3_UPGRADE',
 ];
 
 const DRAFT_KEY = 'activate_current_draft';
@@ -45,25 +48,17 @@ const initialState: IndividualCurrentFormState = {
   otpValue: '',
   verificationId: null,
   biodata: null,
-  email: '',
-  secondPhone: '',
+  customerPhotoUrl: null,
+  livenessPhotoUrl: null,
+  referenceFormUrl: null,
   secondaryIdMethod: null,
   secondaryIdValue: '',
-  address: '',
-  customerPhotoUrl: null,
-  customerPhotoFile: null,
-  livenessPhotoUrl: null,
   idCardPhotoUrl: null,
-  idCardPhotoFile: null,
-  signatureFile: null,
-  bvnNinEvidenceFile: null,
   isProximityConfirmed: null,
+  address: '',
   proofOfAddressUrl: null,
   locationPhotoUrl: null,
-  proofOfAddressFile: null,
-  locationPhotoFile: null,
   gpsCoords: null,
-  referenceFormUrl: null,
   accountRequestId: null,
   accountNumber: null,
 };
@@ -84,8 +79,16 @@ export function useIndividualCurrentWizard() {
   const draftIdParam = searchParams.get('draftId');
   const { data: drafts } = useGetDrafts();
 
-  // Find if we have a draft passed in URL
-  const serverDraft = drafts?.find((d) => d.id === draftIdParam);
+  const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftIdParam || undefined);
+  const activeDraftIdRef = useRef<string | undefined>(draftIdParam || undefined);
+
+  function updateActiveDraftId(id: string) {
+    setActiveDraftId(id);
+    activeDraftIdRef.current = id;
+  }
+
+  // Find if we have a draft passed in URL or currently active
+  const serverDraft = drafts?.find((d) => d.id === (draftIdParam || activeDraftId));
 
   // Local fallback for unsynced changes
   const localDraft = typeof window !== 'undefined' ? loadDraft() : null;
@@ -96,6 +99,8 @@ export function useIndividualCurrentWizard() {
   const [formState, setFormState] = useState<IndividualCurrentFormState>(draftState ?? initialState);
   const [isManualMode, setIsManualMode] = useState(false);
   const [useLivenessMode, setUseLivenessMode] = useState(false);
+  
+  const [stepMessage, setStepMessage] = useState<{ type: 'success' | 'error' | 'info'; title: string; description: string | React.ReactNode } | null>(null);
   
   // Only show prompt if it's a local draft without a URL draft ID
   const [showDraftPrompt, setShowDraftPrompt] = useState<boolean>(!!localDraft && !draftIdParam);
@@ -118,12 +123,17 @@ export function useIndividualCurrentWizard() {
     if (nextIndex < STEPS.length) setCurrentStep(STEPS[nextIndex]);
   }
 
+  function previous() {
+    if (currentIndex > 0) setCurrentStep(STEPS[currentIndex - 1]);
+  }
+
   function goTo(step: CurrentWizardStep) {
     setCurrentStep(step);
   }
 
   function update(updates: Partial<IndividualCurrentFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }));
+    setStepMessage(null); // Clear errors when state updates
   }
 
   function switchToManual() {
@@ -141,17 +151,35 @@ export function useIndividualCurrentWizard() {
     const payload = { step: currentStep, state: formState };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
     saveToServer({
-      draftId: serverDraft?.id,
+      draftId: activeDraftIdRef.current,
       accountCategory: 'INDIVIDUAL',
       accountType: 'CURRENT',
       draftData: payload,
+    }, {
+      onSuccess: (res) => { if (res?.id) updateActiveDraftId(res.id); }
     });
   }
 
+  // Auto-save draft on step or state change (only after identity is inputted)
+  useEffect(() => {
+    if (formState.verificationId || currentStep !== 'IDENTITY_INPUT') {
+      const payload = { step: currentStep, state: formState };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+      saveToServer({
+        draftId: activeDraftIdRef.current,
+        accountCategory: 'INDIVIDUAL',
+        accountType: 'CURRENT',
+        draftData: payload,
+      }, {
+        onSuccess: (res) => { if (res?.id) updateActiveDraftId(res.id); }
+      });
+    }
+  }, [currentStep, formState]);
+
   function clearDraft() {
     localStorage.removeItem(DRAFT_KEY);
-    if (serverDraft?.id) {
-      deleteFromServer(serverDraft.id);
+    if (activeDraftId) {
+      deleteFromServer(activeDraftId);
     }
   }
 
@@ -190,7 +218,11 @@ export function useIndividualCurrentWizard() {
     stepLabels: STEP_LABELS,
     hasDraft,
     showDraftPrompt,
+    stepMessage,
+    setStepMessage,
+    clearStepMessage: () => setStepMessage(null),
     next,
+    previous,
     goTo,
     update,
     switchToManual,

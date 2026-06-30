@@ -1,35 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Smartphone, Wallet, Eye, EyeOff, Phone, Mail,
-  CreditCard, ArrowUpCircle, MapPin, User, Calendar, CheckCircle2,
-  Clock, TrendingUp, Shield,
+  ArrowLeft, Wallet, Eye, EyeOff, Phone, Mail,
+  CreditCard, MapPin, User, Calendar, CheckCircle2,
+  Clock, TrendingUp, Briefcase, ArrowUpCircle
 } from 'lucide-react';
-import { useCustomerById } from '../hooks/useCustomers';
-import { usePinVerification } from '@src/modules/pin/hooks/usePinVerification';
 import { formatCurrency, cn } from '@src/utils';
-import { LienRequestForm } from '@src/modules/lien/components/LienRequestForm';
+import { CustomerDetailResponse } from '../types/customers.types';
 import { CustomerInflowsTab } from './CustomerInflowsTab';
 import { CustomerBankOneTab } from './CustomerBankOneTab';
-import { CurrentAccountDetailView } from './CurrentAccountDetailView';
 
-type Tab = 'overview' | 'biodata' | 'account' | 'activity' | 'inflows' | 'lien' | 'bankone';
-
-function TierBadge({ tier }: { tier: number | string }) {
-  const num = typeof tier === 'string' ? parseInt(tier.replace(/\D/g, '')) : tier;
-  const styles: Record<number, string> = {
-    1: 'bg-emerald-50 text-emerald-600',
-    2: 'bg-blue-50 text-blue-600',
-    3: 'bg-purple-50 text-[#920793]',
-  };
-  return (
-    <span className={cn('text-[11px] font-bold px-2.5 py-1 rounded-full', styles[num] ?? styles[1])}>
-      Tier {num}
-    </span>
-  );
-}
+type Tab = 'overview' | 'biodata' | 'account' | 'activity' | 'inflows' | 'bankone';
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -37,6 +20,20 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-[12px] text-gray-500 font-medium shrink-0">{label}</span>
       <span className="text-[13px] font-semibold text-gray-900 text-right">{value ?? '—'}</span>
     </div>
+  );
+}
+
+function TierBadge({ tier }: { tier: number | string }) {
+  const num = typeof tier === 'string' ? parseInt(tier.replace(/\D/g, '')) : tier;
+  const colors: Record<number, string> = {
+    1: 'bg-blue-50 text-blue-700',
+    2: 'bg-purple-50 text-[#920793]',
+    3: 'bg-amber-50 text-amber-700'
+  };
+  return (
+    <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap', colors[num] ?? colors[1])}>
+      Tier {num}
+    </span>
   );
 }
 
@@ -61,74 +58,38 @@ function RevealButton({ revealed, onToggle }: { revealed: boolean; onToggle: () 
   );
 }
 
-type Props = { id: string };
+type Props = {
+  data: CustomerDetailResponse;
+  id: string;
+  accountId: string;
+  biodataRevealed: boolean;
+  balanceRevealed: boolean;
+  onRevealBiodata: () => void;
+  onRevealBalance: () => void;
+  revealToken?: string;
+};
 
-export function CustomerDetail({ id }: Props) {
+export function CurrentAccountDetailView({ 
+  data, 
+  id, 
+  accountId,
+  biodataRevealed,
+  balanceRevealed,
+  onRevealBiodata,
+  onRevealBalance,
+  revealToken
+}: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const accountId = searchParams.get('accountId');
-  const { requirePin, revealToken } = usePinVerification();
   const [tab, setTab] = useState<Tab>('overview');
-  const [biodataRevealed, setBiodataRevealed] = useState(false);
-  const [balanceRevealed, setBalanceRevealed] = useState(false);
-
-  const activeRevealToken = (biodataRevealed || balanceRevealed) ? (revealToken ?? undefined) : undefined;
-  const { customer: data, isLoading } = useCustomerById(id, activeRevealToken, accountId ?? undefined);
-
-  function handleRevealBiodata() {
-    if (biodataRevealed) { setBiodataRevealed(false); return; }
-    requirePin('VIEW_CUSTOMER_BIODATA', () => setBiodataRevealed(true));
-  }
-
-  function handleRevealBalance() {
-    if (balanceRevealed) { setBalanceRevealed(false); return; }
-    requirePin('VIEW_BALANCE', () => setBalanceRevealed(true));
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#920793] border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="space-y-4">
-        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
-        </button>
-        <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center">
-          <p className="text-[14px] text-gray-400">Customer not found.</p>
-        </div>
-      </div>
-    );
-  }
 
   const { overview, biodata, account, activity } = data;
   const fullName = biodata?.fullName || data.name || '—';
   const initials = fullName.split(/\s+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
   const tier = overview?.accountTier ?? 1;
-  const isMobileActive = overview?.mobileAppStatus?.toLowerCase().includes('activ') ?? false;
-  const hasDeposit = overview?.depositStatus?.toLowerCase().includes('no') === false;
   const upgradeBanner = account?.upgradeTierBanner;
-
-  const isCurrentAccount = data.account?.accountType === 'INDIVIDUAL CURRENT' || data.overview?.accountType === 'INDIVIDUAL CURRENT';
-  if (isCurrentAccount) {
-    return (
-      <CurrentAccountDetailView 
-        data={data} 
-        id={id} 
-        accountId={accountId!}
-        biodataRevealed={biodataRevealed}
-        balanceRevealed={balanceRevealed}
-        onRevealBiodata={handleRevealBiodata}
-        onRevealBalance={handleRevealBalance}
-        revealToken={revealToken ?? undefined}
-      />
-    );
-  }
+  
+  const isPending = !account?.accountNumber || account.accountNumber.toLowerCase() === 'pending' || account.accountNumber === 'N/A';
+  const hasDeposit = account?.depositStatus?.toLowerCase().includes('no') === false;
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -136,7 +97,6 @@ export function CustomerDetail({ id }: Props) {
     { key: 'account', label: 'Account' },
     { key: 'inflows', label: 'Inflows' },
     { key: 'activity', label: 'Activity' },
-    { key: 'lien', label: 'Lien' },
     { key: 'bankone', label: 'BankOne Sync' },
   ];
 
@@ -150,32 +110,38 @@ export function CustomerDetail({ id }: Props) {
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="h-14 w-14 rounded-full flex items-center justify-center text-lg font-bold text-white shrink-0" style={{ backgroundColor: '#920793' }}>
-            {initials}
+            <Briefcase className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-[18px] font-black text-gray-900">{fullName}</h1>
               <TierBadge tier={tier} />
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-[#920793]">
+                CURRENT ACCOUNT
+              </span>
             </div>
             <p className="text-[13px] text-gray-500 mt-0.5">
-              {account?.accountType} · {account?.accountNumber ?? '—'}
+              {account?.accountNumber && account.accountNumber !== 'N/A' && account.accountNumber !== 'Pending' ? account.accountNumber : 'Pending Approval'}
             </p>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <span className={cn('flex items-center gap-1 text-[12px] font-medium', isMobileActive ? 'text-green-600' : 'text-gray-400')}>
-                <Smartphone className="h-3.5 w-3.5" />
-                {overview?.mobileAppStatus ?? 'Unknown'}
-              </span>
-              <span className={cn('flex items-center gap-1 text-[12px] font-medium', hasDeposit ? 'text-green-600' : 'text-gray-400')}>
-                <Wallet className="h-3.5 w-3.5" />
-                {overview?.depositStatus ?? '—'}
-              </span>
+              {isPending ? (
+                <span className="flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                  <Clock className="h-3.5 w-3.5" />
+                  Awaiting Core Approval
+                </span>
+              ) : (
+                <span className={cn('flex items-center gap-1 text-[12px] font-medium', hasDeposit ? 'text-green-600' : 'text-gray-400')}>
+                  <Wallet className="h-3.5 w-3.5" />
+                  {account?.depositStatus ?? '—'}
+                </span>
+              )}
             </div>
           </div>
         </div>
         {upgradeBanner && (
           <div className="flex gap-2 mt-4">
             <button
-              disabled={!!upgradeBanner.status}
+              disabled={!!upgradeBanner.status || isPending}
               onClick={() => router.push(`/account-upgrade/${id}?from=customer&currentTier=${tier}`)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-[#920793] bg-purple-50 hover:bg-purple-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
@@ -211,45 +177,32 @@ export function CustomerDetail({ id }: Props) {
               <p className="text-[11px] text-gray-500 mt-0.5">Account Tier</p>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
-              <p className="text-[18px] font-black text-gray-900 truncate">{formatCurrency(overview?.depositsCount ?? 0)}</p>
+              <p className="text-[18px] font-black text-gray-900 truncate">{formatCurrency(account?.depositCount ?? 0)}</p>
               <p className="text-[11px] text-gray-500 mt-0.5">Total Deposits</p>
             </div>
-            <button onClick={handleRevealBalance} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center hover:shadow-md transition-shadow active:scale-[0.98]">
+            <button onClick={onRevealBalance} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center hover:shadow-md transition-shadow active:scale-[0.98]">
               <p className="text-[18px] font-black text-gray-900 truncate">
-                {balanceRevealed ? overview?.portfolioValue : '••••'}
+                {balanceRevealed ? account?.portfolioValue : '••••'}
               </p>
               <p className="text-[11px] text-gray-500 mt-0.5 flex items-center justify-center gap-1">
                 <TrendingUp className="h-3 w-3" /> Portfolio
               </p>
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className={cn('rounded-2xl p-4 border flex items-center gap-3', isMobileActive ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100')}>
-              <Smartphone className={cn('h-5 w-5 shrink-0', isMobileActive ? 'text-green-600' : 'text-gray-400')} />
-              <div>
-                <p className="text-[13px] font-semibold text-gray-900">Mobile App</p>
-                <p className={cn('text-[11px] font-medium', isMobileActive ? 'text-green-600' : 'text-gray-400')}>
-                  {overview?.mobileAppStatus}
-                </p>
-              </div>
-            </div>
-            <div className={cn('rounded-2xl p-4 border flex items-center gap-3', hasDeposit ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100')}>
-              <Wallet className={cn('h-5 w-5 shrink-0', hasDeposit ? 'text-green-600' : 'text-gray-400')} />
-              <div>
-                <p className="text-[13px] font-semibold text-gray-900">Deposit</p>
-                <p className={cn('text-[11px] font-medium', hasDeposit ? 'text-green-600' : 'text-gray-400')}>
-                  {overview?.depositStatus}
-                </p>
-              </div>
-            </div>
-          </div>
+          
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-1">
             <InfoRow label="Date Opened" value={account?.dateOpened} />
-            <InfoRow label="Account Type" value={account?.accountType} />
+            <InfoRow label="Account Type" value="INDIVIDUAL CURRENT" />
             <InfoRow label="Account Number" value={
               <span className="flex items-center gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                {account?.accountNumber ?? '—'}
+                {account?.accountNumber && account.accountNumber !== 'N/A' && account.accountNumber !== 'Pending' ? account.accountNumber : 'Pending'}
+              </span>
+            } />
+            <InfoRow label="Approval Status" value={
+              <span className={cn('flex items-center gap-1', isPending ? 'text-amber-600' : 'text-green-600')}>
+                {isPending ? <Clock className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                {isPending ? 'Pending Core Review' : 'Active'}
               </span>
             } />
           </div>
@@ -259,7 +212,7 @@ export function CustomerDetail({ id }: Props) {
       {/* Biodata */}
       {tab === 'biodata' && (
         <div className="space-y-3">
-          <Section title="Personal Information" action={<RevealButton revealed={biodataRevealed} onToggle={handleRevealBiodata} />}>
+          <Section title="Personal Information" action={<RevealButton revealed={biodataRevealed} onToggle={onRevealBiodata} />}>
             <InfoRow label="Full Name" value={biodata?.fullName} />
             <InfoRow label="Gender" value={<span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-gray-400" />{biodata?.gender}</span>} />
             <InfoRow label="Date of Birth" value={
@@ -272,7 +225,7 @@ export function CustomerDetail({ id }: Props) {
             <InfoRow label="Email" value={<span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-gray-400" />{biodata?.email}</span>} />
             <InfoRow label="Address" value={<span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" />{biodata?.address}</span>} />
           </Section>
-          <Section title="Identity Numbers" action={<RevealButton revealed={biodataRevealed} onToggle={handleRevealBiodata} />}>
+          <Section title="Identity Numbers" action={<RevealButton revealed={biodataRevealed} onToggle={onRevealBiodata} />}>
             <InfoRow label="BVN" value={biodata?.bvn} />
             <InfoRow label="NIN" value={biodata?.nin} />
           </Section>
@@ -282,13 +235,13 @@ export function CustomerDetail({ id }: Props) {
       {/* Account */}
       {tab === 'account' && (
         <div className="space-y-3">
-          <Section title="Account Information">
-            <InfoRow label="Account Number" value={<span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-gray-400" />{account?.accountNumber}</span>} />
-            <InfoRow label="Account Type" value={account?.accountType} />
+          <Section title="Current Account Information">
+            <InfoRow label="Account Number" value={<span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-gray-400" />{account?.accountNumber || 'Pending'}</span>} />
+            <InfoRow label="Account Type" value="INDIVIDUAL CURRENT" />
             <InfoRow label="Current Tier" value={<TierBadge tier={account?.currentTier ?? tier} />} />
             <InfoRow label="Date Opened" value={account?.dateOpened} />
           </Section>
-          <Section title="Balance & Deposits" action={<RevealButton revealed={balanceRevealed} onToggle={handleRevealBalance} />}>
+          <Section title="Balance & Deposits" action={<RevealButton revealed={balanceRevealed} onToggle={onRevealBalance} />}>
             <InfoRow label="Portfolio Value" value={balanceRevealed ? account?.portfolioValue : '••••••'} />
             <InfoRow label="Deposit Value" value={formatCurrency(account?.depositCount ?? 0)} />
             <InfoRow label="Deposit Status" value={
@@ -305,7 +258,7 @@ export function CustomerDetail({ id }: Props) {
                 <p className="text-[13px] font-semibold text-[#920793]">{upgradeBanner.title}</p>
                 <p className="text-[12px] text-purple-700 mt-0.5">{upgradeBanner.description}</p>
                 <button
-                  disabled={!!upgradeBanner.status}
+                  disabled={!!upgradeBanner.status || isPending}
                   onClick={() => router.push(`/account-upgrade/${id}?from=customer&currentTier=${tier}`)}
                   className="mt-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                 >
@@ -314,44 +267,6 @@ export function CustomerDetail({ id }: Props) {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Lien Control */}
-      {tab === 'lien' && (
-        <div className="space-y-3">
-          <Section title="Lien Request">
-            <div className="py-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Shield className="h-5 w-5 text-[#920793]" />
-                <div>
-                  <p className="text-[14px] font-semibold text-gray-900">Request Lien Placement</p>
-                  <p className="text-[12px] text-gray-500">Submit a lien request — it will go through Team Lead → CMO → Operations</p>
-                </div>
-              </div>
-              {account?.accountNumber ? (
-                <LienRequestForm
-                  accountNumber={account.accountNumber}
-                  accountId={account.id}
-                  customerId={id}
-                />
-              ) : (
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-[13px] text-gray-500">Account number not available for lien operations</p>
-                </div>
-              )}
-            </div>
-          </Section>
-          <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 flex items-start gap-3">
-            <Shield className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[13px] font-semibold text-amber-800">Approval Required</p>
-              <p className="text-[12px] text-amber-700 mt-0.5">
-                Lien requests must be approved by your Team Lead and CMO before Operations can place them.
-                Ensure you have the proper authorisation before submitting.
-              </p>
-            </div>
-          </div>
         </div>
       )}
 

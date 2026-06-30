@@ -20,16 +20,28 @@ export const otpSchema = z.object({
 });
 
 export const tier2Schema = z.object({
-  secondaryIdMethod: z.enum(['BVN', 'NIN']),
-  secondaryIdValue: z
-    .string()
-    .min(11, 'Must be 11 digits')
-    .max(11, 'Must be 11 digits')
-    .regex(/^\d+$/, 'Numbers only'),
+  secondaryIdMethod: z.enum(['NATIONAL_ID', 'DRIVERS_LICENSE', 'PASSPORT', 'NIN', 'VOTERS_ID']),
+  secondaryIdValue: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.secondaryIdMethod === 'NIN') {
+    if (!data.secondaryIdValue || data.secondaryIdValue.length !== 11 || !/^\d+$/.test(data.secondaryIdValue)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Must be exactly 11 digits',
+        path: ['secondaryIdValue'],
+      });
+    }
+  }
 });
 
 export const tier3AddressSchema = z.object({
-  address: z.string().min(10, 'Enter a valid address'),
+  streetNumber: z.string().min(1, 'Street number is required'),
+  streetName: z.string().min(2, 'Street name is required'),
+  lga: z.string().min(2, 'LGA is required'),
+  city: z.string().min(2, 'City is required'),
+  state: z.string().min(2, 'State is required'),
+  landmark: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const additionalInfoSchema = z.object({

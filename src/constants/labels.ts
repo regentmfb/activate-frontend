@@ -134,13 +134,16 @@ export const CURRENT_STEP_LABELS: Record<string, string> = {
   FACE_PROCESSING:      'Face Match',
   BIODATA_CONFIRMATION: 'Biodata',
   LIVENESS_CHECK:       'Face Verification',
-  ADDITIONAL_INFO:      'More Info',
   PHOTO_CAPTURE:        'Photo',
-  ID_CARD_CAPTURE:      'ID Card',
-  LOCATION_VERIFICATION:'Location',
   REFERENCE_UPLOAD:     'Reference',
-  SUBMIT_SUCCESS:       'Done',
-  SUBMIT_FAILED:        'Done',
+  TIER1_SUCCESS:        'Tier 1',
+  TIER1_FAILED:         'Tier 1',
+  TIER2_UPGRADE:        'Tier 2',
+  TIER2_SUCCESS:        'Tier 2',
+  TIER2_FAILED:         'Tier 2',
+  TIER3_UPGRADE:        'Tier 3',
+  TIER3_SUCCESS:        'Tier 3',
+  TIER3_FAILED:         'Tier 3',
   COMPLETE:             'Done',
 };
 
@@ -150,17 +153,25 @@ export const CURRENT_STEP_DESCRIPTIONS: Record<string, string> = {
   FACE_PROCESSING:      'Matching face against national database…',
   BIODATA_CONFIRMATION: 'Review and confirm the customer details.',
   LIVENESS_CHECK:       'Run face verification.',
-  ADDITIONAL_INFO:      'Fill in remaining customer details.',
   PHOTO_CAPTURE:        'Take a clear photo of the customer.',
-  ID_CARD_CAPTURE:      "Capture the customer's official ID card.",
-  LOCATION_VERIFICATION:"Verify the customer's address and location.",
   REFERENCE_UPLOAD:     'Upload the signed reference form.',
-  SUBMIT_SUCCESS:       'Request submitted successfully.',
-  SUBMIT_FAILED:        'Request submission failed.',
-  COMPLETE:             'Account request submitted.',
+  TIER1_SUCCESS:        'Tier 1 account created successfully.',
+  TIER1_FAILED:         'Tier 1 account creation failed.',
+  TIER2_UPGRADE:        'Provide secondary ID and ID card photo.',
+  TIER2_SUCCESS:        'Tier 2 upgrade successful.',
+  TIER2_FAILED:         'Tier 2 upgrade failed.',
+  TIER3_UPGRADE:        'Verify customer address and location.',
+  TIER3_SUCCESS:        'Tier 3 upgrade successful.',
+  TIER3_FAILED:         'Tier 3 upgrade failed.',
+  COMPLETE:             'Account setup is complete.',
 };
 
-export const CURRENT_RESULT_STEPS = new Set(['SUBMIT_SUCCESS', 'SUBMIT_FAILED', 'COMPLETE']);
+export const CURRENT_RESULT_STEPS = new Set([
+  'TIER1_SUCCESS', 'TIER1_FAILED',
+  'TIER2_SUCCESS', 'TIER2_FAILED',
+  'TIER3_SUCCESS', 'TIER3_FAILED',
+  'COMPLETE',
+]);
 
 // ── Account request status ────────────────────────────────────────────────────
 

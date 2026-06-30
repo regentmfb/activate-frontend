@@ -12,12 +12,13 @@ type Props = {
   formState: IndividualSavingsFormState;
   onNext: (data: Partial<IndividualSavingsFormState>) => void;
   accountType?: 'SAVINGS' | 'CURRENT';
+  setStepMessage?: (msg: { type: 'success' | 'error' | 'info'; title: string; description: string }) => void;
 };
 
 const input = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-white border outline-none transition-colors placeholder:text-gray-300`;
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2`;
 
-export function IdentityInputStep({ formState, onNext, accountType }: Props) {
+export function IdentityInputStep({ formState, onNext, accountType, setStepMessage }: Props) {
   const { mutate: startVerification, isPending: isStartingVerification } = useStartVerification();
   const { mutate: checkExistence, isPending: isCheckingExistence } = useCheckExistence();
 
@@ -44,7 +45,15 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
       {
         onSuccess: (existRes) => {
           if (existRes.exists) {
-            appToast.error(existRes.message || 'An account of this type already exists or is in progress for this customer.');
+            if (setStepMessage) {
+              setStepMessage({
+                type: 'error',
+                title: 'Account Already Exists',
+                description: 'This customer already has an account of this type. Please check the customer directory to manage it, or start over with a different BVN.',
+              });
+            } else {
+              appToast.error(existRes.message || 'An account of this type already exists or is in progress for this customer.');
+            }
             return;
           }
 
@@ -58,7 +67,15 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
             {
               onSuccess: (res) => {
                 if (res.status === 'FAILED') {
-                  appToast.error(res.message || 'Verification failed. Please check the BVN/NIN and name, then try again.');
+                  if (setStepMessage) {
+                    setStepMessage({
+                      type: 'error',
+                      title: 'Identity Not Found',
+                      description: 'We could not find a match for this BVN. Please double-check the 11-digit number with the customer and try again.',
+                    });
+                  } else {
+                    appToast.error(res.message || 'Verification failed. Please check the BVN/NIN and name, then try again.');
+                  }
                   return;
                 }
                 onNext({
@@ -70,13 +87,29 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
                 });
               },
               onError: (err) => {
-                appToast.error(err.message);
+                if (setStepMessage) {
+                  setStepMessage({
+                    type: 'error',
+                    title: 'Connection Issue',
+                    description: 'We had trouble securely connecting to the verification service. Please check your internet connection and try again in a moment.',
+                  });
+                } else {
+                  appToast.error(err.message);
+                }
               },
             }
           );
         },
         onError: (err) => {
-          appToast.error(err.message || 'Failed to check account existence.');
+          if (setStepMessage) {
+            setStepMessage({
+              type: 'error',
+              title: 'Verification Error',
+              description: 'We were unable to verify if the customer already has an account. Please refresh the page or try again in a few minutes.',
+            });
+          } else {
+            appToast.error(err.message || 'Failed to check account existence.');
+          }
         },
       }
     );
@@ -89,21 +122,8 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
         <p className="text-[12px] text-gray-500 mt-0.5">Choose a verification method to begin.</p>
       </div>
 
-      {/* Method selector */}
-      <div className="flex gap-2">
-        {(['BVN', 'NIN'] as const).map((m) => (
-          <label
-            key={m}
-            className={cn(
-              'flex-1 flex items-center justify-center h-9 rounded-lg border-2 cursor-pointer font-semibold text-[13px] transition-all',
-              method === m ? 'border-[#920793] bg-purple-50 text-[#920793]' : 'border-gray-200 text-gray-400'
-            )}
-          >
-            <input type="radio" value={m} {...register('verificationMethod')} className="sr-only" />
-            {m}
-          </label>
-        ))}
-      </div>
+      {/* Method selector removed - forced to BVN */}
+      <input type="hidden" value="BVN" {...register('verificationMethod')} />
 
       {/* BVN / NIN input */}
       <div className="space-y-1">
@@ -146,7 +166,7 @@ export function IdentityInputStep({ formState, onNext, accountType }: Props) {
       */}
 
       <button type="submit" disabled={isPending} className={btn}>
-        {isPending ? 'Starting verification…' : 'Continue'}
+        {isPending ? 'Starting verification…' : 'Save and Continue'}
       </button>
     </form>
   );

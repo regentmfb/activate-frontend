@@ -46,7 +46,7 @@ export function LocationVerificationStep({ formState, onNext, isSubmitting }: Pr
     return (
       <div className="space-y-4">
         <div>
-          <p className="text-[14px] font-bold text-gray-900">Location Verification</p>
+          <p className="text-[14px] font-bold text-gray-900">Address Verification</p>
           <p className="text-[12px] text-gray-500 mt-0.5">Are you currently near the customer&apos;s residential address?</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -69,7 +69,7 @@ export function LocationVerificationStep({ formState, onNext, isSubmitting }: Pr
     return (
       <div className="space-y-4">
         <div>
-          <p className="text-[14px] font-bold text-gray-900">Remote Location Verification</p>
+          <p className="text-[14px] font-bold text-gray-900">Remote Address Verification</p>
           <p className="text-[12px] text-gray-500 mt-0.5">Upload the customer&apos;s proof of address. Operations will verify remotely.</p>
         </div>
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
@@ -99,8 +99,8 @@ export function LocationVerificationStep({ formState, onNext, isSubmitting }: Pr
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-[14px] font-bold text-gray-900">Location Verification</p>
-        <p className="text-[12px] text-gray-500 mt-0.5">Complete address and location verification.</p>
+        <p className="text-[14px] font-bold text-gray-900">Address Verification</p>
+        <p className="text-[12px] text-gray-500 mt-0.5">Complete address verification.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

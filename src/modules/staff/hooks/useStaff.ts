@@ -27,7 +27,7 @@ export function useTeamMembers() {
   return useQuery({
     queryKey: STAFF_QUERY_KEYS.teamMembers,
     queryFn: () => staffApi.getTeamMembers(),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 }
 

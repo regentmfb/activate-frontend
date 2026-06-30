@@ -19,7 +19,7 @@ const STEP_LABELS: Record<string, string> = {
   PHOTO_CAPTURE: 'Photo Capture',
   ADDITIONAL_INFO: 'Additional Info',
   ID_CARD_CAPTURE: 'ID Card Capture',
-  LOCATION_VERIFICATION: 'Location Verification',
+  LOCATION_VERIFICATION: 'Address Verification',
   REFERENCE_UPLOAD: 'Reference Upload',
   TIER2_UPGRADE: 'Tier 2 Upgrade',
   TIER3_UPGRADE: 'Tier 3 Upgrade',

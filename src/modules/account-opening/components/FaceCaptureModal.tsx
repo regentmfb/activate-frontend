@@ -12,7 +12,7 @@ type Props = {
 type Status = 'loading' | 'ready' | 'scanning' | 'flash' | 'captured' | 'error';
 
 // Oval dimensions (in the 390×680 SVG viewBox)
-const CX = 195, CY = 295, RX = 118, RY = 152;
+const CX = 195, CY = 295, RX = 150, RY = 195;
 
 export function FaceCaptureModal({ onCapture, onClose }: Props) {
   const webcamRef   = useRef<Webcam>(null);

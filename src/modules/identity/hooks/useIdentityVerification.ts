@@ -102,3 +102,9 @@ export function useCreateQoreIdSession() {
     mutationFn: (id: string) => identityApi.createQoreIdSession(id),
   });
 }
+
+export function useVerifyNin() {
+  return useMutation({
+    mutationFn: (payload: { nin: string; verificationId: string }) => identityApi.verifyNin(payload),
+  });
+}

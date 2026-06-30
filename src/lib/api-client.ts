@@ -45,7 +45,9 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(new Error(message));
+    const customError = new Error(message);
+    (customError as any).status = status;
+    throw customError;
   }
 );
 

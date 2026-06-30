@@ -199,7 +199,7 @@ export function Header({ collapsed, onToggleCollapse }: HeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <InstallAppButton />
+        {/* <InstallAppButton /> */}
         <div className="hidden sm:block w-px h-5 bg-gray-200" />
         <UserMenu />
       </div>

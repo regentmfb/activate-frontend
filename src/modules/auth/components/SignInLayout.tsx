@@ -69,7 +69,7 @@ export function SignInLayout() {
             <span className="text-white/80 text-[2rem]">Activate</span>
           </h2>
           <p className="text-white/75 text-center text-[1.1rem] leading-relaxed max-w-md mb-14">
-            Open accounts, manage customers, and track performance — all from your phone or tablet, even offline.
+            Open accounts, manage customers, and track performance all from your phone or tablet, even offline.
           </p>
 
           {/* Decorative card */}

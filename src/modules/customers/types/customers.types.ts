@@ -83,6 +83,7 @@ export type CustomerInflowsResponse = {
 
 export type Customer = {
   id: string;
+  requestId?: string;
   fullName: string;
   firstName: string;
   lastName: string;

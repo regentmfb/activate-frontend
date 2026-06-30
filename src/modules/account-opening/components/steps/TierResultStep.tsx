@@ -11,6 +11,8 @@ type Props = {
   tier: 1 | 2 | 3;
   customerName: string;
   details: DetailRow[];
+  title?: string;
+  subtitle?: string;
   // Success actions
   onUpgrade?: () => void;
   upgradeLabel?: string;
@@ -25,6 +27,8 @@ export function TierResultStep({
   tier,
   customerName,
   details,
+  title,
+  subtitle,
   onUpgrade,
   upgradeLabel,
   onFinish,
@@ -48,16 +52,16 @@ export function TierResultStep({
         </div>
         <div>
           <p className="text-[14px] font-bold text-gray-900">
-            {success
+            {title || (success
               ? `Tier ${tier} ${tier === 3 ? 'Upgrade Complete!' : 'Account Created!'}`
               : `Tier ${tier} ${tier === 1 ? 'Account Creation' : 'Upgrade'} Failed`
-            }
+            )}
           </p>
           <p className="text-[12px] text-gray-500">
-            {success
+            {subtitle || (success
               ? `${customerName}'s account has been ${tier === 1 ? 'created' : 'upgraded'} successfully.`
               : `Could not ${tier === 1 ? 'create' : 'upgrade'} ${customerName}'s account.`
-            }
+            )}
           </p>
         </div>
       </div>

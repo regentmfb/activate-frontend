@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from '@src/providers/Providers';
+import { BusinessMessage } from '@src/components/ui/BusinessMessage';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -40,7 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BusinessMessage />
+        </Providers>
       </body>
     </html>
   );

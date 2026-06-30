@@ -16,15 +16,22 @@ export function CompleteStep({ formState }: Props) {
   });
 
   const resolvedAccountNumber = formState.accountNumber || request?.bankOneAccountNumber;
+  const isCurrentAccount = request?.accountType === 'CURRENT';
+
   const accountNumberDisplay = resolvedAccountNumber || (
-    <span className="flex items-center justify-end gap-1.5 text-[#920793]">
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      <span>Creating account...</span>
-    </span>
+    isCurrentAccount ? (
+      <span className="text-amber-600 font-medium">Pending Regent Core Review</span>
+    ) : (
+      <span className="flex items-center justify-end gap-1.5 text-[#920793]">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span>Creating account...</span>
+      </span>
+    )
   );
 
   const name = formState.biodata ? `${formState.biodata.firstName} ${formState.biodata.lastName}` : 'Customer';
   const tier = formState.gpsCoords ? 'Tier 3' : formState.idCardPhotoUrl ? 'Tier 2' : 'Tier 1';
+  const accountTypeDisplay = request?.accountType === 'CURRENT' ? 'Individual Current' : 'Individual Savings';
 
   return (
     <div className="space-y-4">
@@ -33,17 +40,25 @@ export function CompleteStep({ formState }: Props) {
           <CheckCircle2 className="h-5 w-5 text-[#920793]" />
         </div>
         <div>
-          <p className="text-[15px] font-bold text-gray-900">All Done! 🎉</p>
-          <p className="text-[12px] text-gray-500">{name}&apos;s Individual Savings Account is fully set up.</p>
+          <p className="text-[15px] font-bold text-gray-900">
+            {isCurrentAccount && !resolvedAccountNumber ? 'Request Submitted!' : 'All Done! 🎉'}
+          </p>
+          <p className="text-[12px] text-gray-500">
+            {isCurrentAccount && !resolvedAccountNumber 
+              ? `${name}'s current account request is pending Core Review.` 
+              : `${name}'s ${accountTypeDisplay} Account is fully set up.`
+            }
+          </p>
         </div>
       </div>
 
       <div className="bg-gray-50 rounded-lg border border-gray-100 divide-y divide-gray-100">
         {(
           [
-            ['Account Number', accountNumberDisplay],
-            ['Account Type', 'Individual Savings'],
+            ...(isCurrentAccount && !resolvedAccountNumber ? [] : [['Account Number', accountNumberDisplay]]),
+            ['Account Type', accountTypeDisplay],
             ['Tier', tier],
+            ['Status', isCurrentAccount && !resolvedAccountNumber ? 'Pending Regent Core' : 'Active'],
           ] as [string, React.ReactNode][]
         ).map(([k, v]) => (
           <div key={k} className="flex justify-between px-3 py-2 text-[13px]">

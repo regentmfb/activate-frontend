@@ -13,13 +13,26 @@ import { ACCOUNT_TYPE_LABELS } from '@src/constants/labels';
 
 function TierBadge({ tier }: { tier: number }) {
   const colors: Record<number, string> = {
-    1: 'bg-gray-100 text-gray-500',
-    2: 'bg-blue-50 text-blue-600',
-    3: 'bg-purple-50 text-[#920793]',
+    1: 'bg-blue-50 text-blue-700',
+    2: 'bg-purple-50 text-[#920793]',
+    3: 'bg-amber-50 text-amber-700'
   };
+
   return (
     <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', colors[tier] ?? colors[1])}>
       Tier {tier}
+    </span>
+  );
+}
+
+function AccountTypeBadge({ type }: { type: string }) {
+  const isCurrent = type?.includes('CURRENT');
+  return (
+    <span className={cn(
+      'px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap',
+      isCurrent ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-[#920793]'
+    )}>
+      {ACCOUNT_TYPE_LABELS[type] ?? type}
     </span>
   );
 }
@@ -40,6 +53,9 @@ export function CustomersList() {
   const { role } = usePermissions();
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const [portfolioRevealedLocal, setPortfolioRevealedLocal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'SAVINGS' | 'CURRENT'>('SAVINGS');
+
+  console.log('[DEBUG] Customers loaded in UI:', customers);
 
   // Use server-revealed value if token is active, otherwise use local toggle
   const showPortfolio = portfolioRevealed || portfolioRevealedLocal;
@@ -68,12 +84,22 @@ export function CustomersList() {
     {
       key: 'accountType',
       header: 'Account Type',
-      render: (c) => <span className="text-gray-500 whitespace-nowrap">{ACCOUNT_TYPE_LABELS[c.accountType] ?? c.accountType}</span>,
+      render: (c) => <AccountTypeBadge type={c.accountType} />,
     },
     {
       key: 'accountNumber',
       header: 'Account No.',
-      render: (c) => <span className="text-gray-600 font-mono text-[13px]">{c.accountNumber ?? '—'}</span>,
+      render: (c) => {
+        const isPending = !c.accountNumber || c.accountNumber === 'N/A' || c.accountNumber.toLowerCase() === 'pending';
+        return (
+          <span className={cn(
+            'font-mono text-[13px] px-2 py-0.5 rounded font-semibold',
+            isPending ? 'text-amber-600 bg-amber-50' : 'text-slate-700 bg-slate-100 border border-slate-200'
+          )}>
+            {isPending ? 'Pending' : c.accountNumber}
+          </span>
+        );
+      },
     },
     {
       key: 'accountOfficer',
@@ -100,7 +126,7 @@ export function CustomersList() {
       header: '',
       render: (c) => (
         <button
-          onClick={() => router.push(`/customers/${c.id}`)}
+          onClick={() => router.push(`/customers/${c.id}?accountId=${c.requestId}`)}
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-[#920793] bg-purple-50 hover:bg-purple-100 transition-colors whitespace-nowrap"
         >
           View <ChevronRight className="h-3.5 w-3.5" />
@@ -113,7 +139,7 @@ export function CustomersList() {
     const initials = `${customer.firstName?.[0] ?? '?'}${customer.lastName?.[0] ?? ''}`.toUpperCase();
     return (
       <button
-        onClick={() => router.push(`/customers/${customer.id}`)}
+        onClick={() => router.push(`/customers/${customer.id}?accountId=${customer.requestId}`)}
         className="w-full bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow active:scale-[0.98] text-left"
       >
         <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ backgroundColor: '#920793' }}>
@@ -124,9 +150,17 @@ export function CustomersList() {
             <p className="text-[14px] font-semibold text-gray-900">{customer.fullName || `${customer.firstName} ${customer.lastName}`}</p>
             <TierBadge tier={customer.tier} />
           </div>
-          <p className="text-[12px] text-gray-500 mt-0.5">
-            {ACCOUNT_TYPE_LABELS[customer.accountType]} · {customer.accountNumber ?? '—'}
-          </p>
+          <div className="text-[12px] text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+            <AccountTypeBadge type={customer.accountType} />
+            <span className={cn(
+              'font-mono text-[11px] px-1.5 py-0.5 rounded font-semibold',
+              (!customer.accountNumber || customer.accountNumber === 'N/A' || customer.accountNumber.toLowerCase() === 'pending')
+                ? 'text-amber-600 bg-amber-50'
+                : 'text-slate-700 bg-slate-100 border border-slate-200'
+            )}>
+              {(!customer.accountNumber || customer.accountNumber === 'N/A' || customer.accountNumber.toLowerCase() === 'pending') ? 'Pending' : customer.accountNumber}
+            </span>
+          </div>
           <p className="text-[11px] text-gray-400 mt-0.5">
             Officer: <span className="font-medium text-gray-600">{customer.accountOfficer || '—'}</span>
           </p>
@@ -140,11 +174,20 @@ export function CustomersList() {
     );
   }
 
+  const filteredCustomers = customers.filter(c => {
+    if (activeTab === 'SAVINGS') return c.accountType.includes('SAVINGS');
+    if (activeTab === 'CURRENT') return c.accountType.includes('CURRENT');
+    return true;
+  });
+  const savingsCount = allCustomers.filter(c => c.accountType.includes('SAVINGS')).length;
+  const currentCount = allCustomers.filter(c => c.accountType.includes('CURRENT')).length;
+  const uniqueCustomersCount = new Set(allCustomers.map(c => c.id)).size;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-[22px] font-black text-gray-900">{isSuperAdmin ? 'Customers' : 'My Customers'}</h1>
-        <p className="text-[14px] text-gray-500 mt-0.5">{allCustomers.length} {isSuperAdmin ? 'customers in the system' : 'customers opened through your Activate'}</p>
+        <p className="text-[14px] text-gray-500 mt-0.5">{uniqueCustomersCount} {isSuperAdmin ? 'customers in the system' : 'customers opened through your Activate'}</p>
       </div>
 
       {/* Summary cards */}
@@ -153,23 +196,35 @@ export function CustomersList() {
           <div className="h-9 w-9 rounded-xl bg-purple-50 flex items-center justify-center mb-2">
             <Users className="h-4 w-4 text-[#920793]" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{allCustomers.length}</p>
+          <p className="text-2xl font-black text-gray-900">{uniqueCustomersCount}</p>
           <p className="text-[12px] text-gray-500 mt-0.5">Total Customers</p>
         </div>
+        
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center mb-2">
             <Smartphone className="h-4 w-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{mobileOnboardedCount}</p>
-          <p className="text-[12px] text-gray-500 mt-0.5">Mobile Onboarded</p>
+          <p className="text-2xl font-black text-gray-900">{savingsCount}</p>
+          <p className="text-[12px] text-gray-500 mt-0.5">Total Savings</p>
         </div>
+
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="h-9 w-9 rounded-xl bg-green-50 flex items-center justify-center mb-2">
             <Wallet className="h-4 w-4 text-green-600" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{withDepositCount}</p>
-          <p className="text-[12px] text-gray-500 mt-0.5">With Deposit</p>
+          <p className="text-2xl font-black text-gray-900">{currentCount}</p>
+          <p className="text-[12px] text-gray-500 mt-0.5">Total Current</p>
         </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <div className="h-9 w-9 rounded-xl bg-orange-50 flex items-center justify-center mb-2">
+            <Smartphone className="h-4 w-4 text-orange-600" />
+          </div>
+          <p className="text-2xl font-black text-gray-900">{mobileOnboardedCount}</p>
+          <p className="text-[12px] text-gray-500 mt-0.5">Mobile Onboarded</p>
+        </div>
+
+        {/* 
         <button
           onClick={handleRevealPortfolio}
           className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-left hover:shadow-md transition-shadow active:scale-[0.98]"
@@ -182,6 +237,28 @@ export function CustomersList() {
           </p>
           <p className="text-[12px] text-gray-500 mt-0.5">Portfolio Value</p>
         </button>
+        */}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-100 pb-px">
+        {(['SAVINGS', 'CURRENT'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-4 py-2.5 text-[13px] font-semibold transition-all relative",
+              activeTab === tab
+                ? "text-[#920793]"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            {tab === 'SAVINGS' ? 'Savings Accounts' : 'Current Accounts'}
+            {activeTab === tab && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#920793] rounded-t-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -197,12 +274,12 @@ export function CustomersList() {
       </div>
 
       <DataView
-        data={customers}
+        data={filteredCustomers}
         columns={columns}
         renderCard={renderCard}
-        keyExtractor={(c) => c.id}
-        title={`${customers.length} ${customers.length === 1 ? 'Customer' : 'Customers'}`}
-        emptyMessage="No customers found."
+        keyExtractor={(c) => c.requestId || c.id}
+        title={`${filteredCustomers.length} ${filteredCustomers.length === 1 ? 'Account' : 'Accounts'}`}
+        emptyMessage="No accounts found."
         gridCols="grid-cols-1 sm:grid-cols-2"
         isLoading={isLoading}
       />

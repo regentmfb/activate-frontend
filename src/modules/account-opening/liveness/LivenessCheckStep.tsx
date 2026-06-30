@@ -11,13 +11,14 @@ import { appToast } from '@/src/lib/toast';
 type Props = {
   formState: IndividualSavingsFormState;
   onNext: (data: Partial<IndividualSavingsFormState>) => void;
+  setStepMessage?: (msg: { type: 'success' | 'error' | 'info'; title: string; description: string | React.ReactNode }) => void;
 };
 
 type LivenessStatus = 'idle' | 'scanning' | 'verifying' | 'failed' | 'passed';
 
 const btn = `w-full h-9 rounded-lg text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40`;
 
-export function LivenessCheckStep({ formState, onNext }: Props) {
+export function LivenessCheckStep({ formState, onNext, setStepMessage }: Props) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(formState.livenessPhotoUrl ?? null);
   const [status, setStatus] = useState<LivenessStatus>(formState.livenessPhotoUrl ? 'passed' : 'idle');
   // const [showFaceModal, setShowFaceModal] = useState(false);
@@ -26,7 +27,15 @@ export function LivenessCheckStep({ formState, onNext }: Props) {
 
   async function triggerLiveness() {
     if (!formState.verificationId) {
-      appToast.error('No verification session active.');
+      if (setStepMessage) {
+        setStepMessage({
+          type: 'error',
+          title: 'Session Missing',
+          description: 'No active verification session was found. Please return to the first step and try again.',
+        });
+      } else {
+        appToast.error('No verification session active.');
+      }
       return;
     }
     
@@ -45,10 +54,13 @@ export function LivenessCheckStep({ formState, onNext }: Props) {
       });
 
       console.log('Identro Liveness Success:', result);
-      const capturedImage = result?.data?.selfieUrl || result?.selfieBase64 || result?.identity?.photo || ''; 
+      let capturedImage = result?.data?.selfieUrl || result?.selfieBase64 || result?.source?.base64Image || result?.source?.photo || result?.identity?.photo || ''; 
+    if (capturedImage && !capturedImage.startsWith('http') && !capturedImage.startsWith('data:')) {
+      capturedImage = `data:image/jpeg;base64,${capturedImage}`;
+    }
 
-      const livenessScore = Number(result.liveness?.score) || 0;
-      const matchScore = Number(result.match?.score) || 0;
+      const livenessScore = Math.round(Number(result.liveness?.score) || 0);
+      const matchScore = Math.round(Number(result.match?.score) || 0);
       
       // Override Identro's strict threshold (defaults to 80)
       const isLivenessOk = result.liveness?.passed !== false || livenessScore >= 70;
@@ -57,31 +69,92 @@ export function LivenessCheckStep({ formState, onNext }: Props) {
       if (result.status === 'FAILED' || !isLivenessOk || !isMatchOk) {
         setStatus('failed');
         
-        let errorMessage = 'Face verification failed.';
-        if (!isLivenessOk) {
-          errorMessage = result.liveness?.message || `Liveness score (${livenessScore}) too low.`;
-        } else if (!isMatchOk) {
-          errorMessage = result.match?.message || `Face match score (${matchScore}) too low.`;
+        let baseMessage = 'Face verification failed.';
+        
+        if (!isLivenessOk && result.liveness?.message) {
+          baseMessage = result.liveness.message;
+        } else if (!isMatchOk && result.match?.message) {
+          baseMessage = result.match.message;
         } else if (result.message) {
-          errorMessage = result.message;
+          baseMessage = result.message;
         }
 
-        appToast.error(errorMessage);
+        const verificationScore = Math.min(livenessScore, matchScore);
+        const errorMessage = (
+          <div className="space-y-3 mt-1">
+            <p>{baseMessage}</p>
+            <ul className="space-y-1.5">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                <span><strong className="font-semibold text-red-900">Required Score:</strong> 70%</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                <span><strong className="font-semibold text-red-900">Actual Score:</strong> {verificationScore}%</span>
+              </li>
+            </ul>
+          </div>
+        );
+
+        if (setStepMessage) {
+          setStepMessage({
+            type: 'error',
+            title: 'Face Verification Failed',
+            description: errorMessage,
+          });
+        } else {
+          appToast.error(`${baseMessage} - Score: ${verificationScore}%`);
+        }
         return;
       }
       
       setPhotoUrl(capturedImage);
       setStatus('passed');
-      appToast.success('Face verification successful!');
+      if (setStepMessage) {
+        const verificationScore = Math.min(livenessScore, matchScore);
+        const successMessage = (
+          <div className="space-y-3 mt-1">
+            <p>Face verification passed successfully.</p>
+            <ul className="space-y-1.5">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
+                <span><strong className="font-semibold text-green-900">Required Score:</strong> 70%</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
+                <span><strong className="font-semibold text-green-900">Actual Score:</strong> {verificationScore}%</span>
+              </li>
+            </ul>
+          </div>
+        );
+        
+        setStepMessage({
+          type: 'success',
+          title: 'Verification Successful',
+          description: successMessage,
+        });
+      } else {
+        appToast.success('Face verification successful!');
+      }
       
-      onNext({
-        livenessPhotoUrl: capturedImage,
-        customerPhotoUrl: capturedImage,
-      });
+      setTimeout(() => {
+        onNext({
+          livenessPhotoUrl: capturedImage,
+          customerPhotoUrl: capturedImage,
+        });
+      }, 2500);
 
     } catch (error: any) {
       console.error('Identro Liveness Failed:', error);
-      appToast.error(error.message || 'Face verification failed or was cancelled.');
+      if (setStepMessage) {
+        setStepMessage({
+          type: 'error',
+          title: 'System Error',
+          description: error.message || 'Face verification failed or was cancelled.',
+        });
+      } else {
+        appToast.error(error.message || 'Face verification failed or was cancelled.');
+      }
       setStatus('failed');
     }
   }
@@ -133,13 +206,13 @@ export function LivenessCheckStep({ formState, onNext }: Props) {
           type="button"
           onClick={triggerLiveness}
           disabled={status === 'scanning' || status === 'verifying'}
-          className="w-full h-[120px] rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-[#920793] hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mx-auto w-full max-w-[280px] h-[100px] rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-[#920793] hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ScanFace className="h-10 w-10 text-gray-300" />
+          <ScanFace className="h-9 w-9 text-gray-300" />
           <p className="text-[13px] font-semibold text-gray-400">
-            {status === 'scanning' || status === 'verifying' ? 'Starting camera…' : 'Tap to open Identro face scanner'}
+            {status === 'scanning' || status === 'verifying' ? 'Starting camera…' : 'Tap to open face scanner'}
           </p>
-          <p className="text-[11px] text-gray-400 max-w-xs text-center">
+          <p className="text-[11px] text-gray-400 max-w-[220px] text-center">
             Position the face within the oval in good lighting
           </p>
         </button>

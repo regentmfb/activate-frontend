@@ -189,12 +189,12 @@ export function TeamLeadDashboard() {
           </div>
         )}
 
-        <button
+        {/* <button
           onClick={() => router.push('/staff')}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-purple-100 text-[13px] font-semibold text-[#920793] bg-purple-50 hover:bg-purple-100 transition-colors"
         >
           View Full RM Details on Staff Page <ArrowRight className="h-4 w-4" />
-        </button>
+        </button> */}
 
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { generateClientReference } from '@src/utils';
 import { WizardStep, IndividualSavingsFormState } from '../types/wizard.types';
@@ -77,8 +77,16 @@ export function useIndividualSavingsWizard() {
   const draftIdParam = searchParams.get('draftId');
   const { data: drafts } = useGetDrafts();
   
-  // Find if we have a draft passed in URL
-  const serverDraft = drafts?.find((d) => d.id === draftIdParam);
+  const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftIdParam || undefined);
+  const activeDraftIdRef = useRef<string | undefined>(draftIdParam || undefined);
+
+  function updateActiveDraftId(id: string) {
+    setActiveDraftId(id);
+    activeDraftIdRef.current = id;
+  }
+  
+  // Find if we have a draft passed in URL or currently active
+  const serverDraft = drafts?.find((d) => d.id === (draftIdParam || activeDraftId));
   
   // Local fallback for unsynced changes
   const localDraft = typeof window !== 'undefined' ? loadDraft() : null;
@@ -89,6 +97,8 @@ export function useIndividualSavingsWizard() {
   const [formState, setFormState] = useState<IndividualSavingsFormState>(draftState ?? initialState);
   const [isManualMode, setIsManualMode] = useState(false);
   const [useLivenessMode, setUseLivenessMode] = useState(false);
+  
+  const [stepMessage, setStepMessage] = useState<{ type: 'success' | 'error' | 'info'; title: string; description: string | React.ReactNode } | null>(null);
   
   // Only show prompt if it's a local draft without a URL draft ID. If URL has draftId, we auto-resume.
   const [showDraftPrompt, setShowDraftPrompt] = useState<boolean>(!!localDraft && !draftIdParam);
@@ -111,12 +121,17 @@ export function useIndividualSavingsWizard() {
     if (nextIndex < STEPS.length) setCurrentStep(STEPS[nextIndex]);
   }
 
+  function previous() {
+    if (currentIndex > 0) setCurrentStep(STEPS[currentIndex - 1]);
+  }
+
   function goTo(step: WizardStep) {
     setCurrentStep(step);
   }
 
   function update(updates: Partial<IndividualSavingsFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }));
+    setStepMessage(null);
   }
 
   function switchToManual() {
@@ -134,29 +149,55 @@ export function useIndividualSavingsWizard() {
     const payload = { step: currentStep, state: formState };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
     saveToServer({
-      draftId: serverDraft?.id,
+      draftId: activeDraftIdRef.current,
       accountCategory: 'INDIVIDUAL',
       accountType: 'SAVINGS',
       draftData: payload,
+    }, {
+      onSuccess: (res) => { if (res?.id) updateActiveDraftId(res.id); }
     });
   }
 
+  // Auto-save to localStorage only, with debounce
+  useEffect(() => {
+    if (formState.verificationId || currentStep !== 'IDENTITY_INPUT') {
+      const timer = setTimeout(() => {
+        const payload = { step: currentStep, state: formState };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+      }, 1000); // 1-second debounce
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, formState]);
+
+  // Sync to server only when changing steps
+  useEffect(() => {
+    if (formState.verificationId || currentStep !== 'IDENTITY_INPUT') {
+      const payload = { step: currentStep, state: formState };
+      saveToServer({
+        draftId: activeDraftIdRef.current,
+        accountCategory: 'INDIVIDUAL',
+        accountType: 'SAVINGS',
+        draftData: payload,
+      }, {
+        onSuccess: (res) => { if (res?.id) updateActiveDraftId(res.id); }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]); // Only trigger on step change, NOT on every keystroke
+
   function clearDraft() {
     localStorage.removeItem(DRAFT_KEY);
-    if (serverDraft?.id) {
-      deleteFromServer(serverDraft.id);
+    if (activeDraftId) {
+      deleteFromServer(activeDraftId);
     }
   }
 
   function resumeDraft() {
-    // Reset verification session state — the old session will be expired/failed on the backend.
-    // The user must re-do identity input to get a fresh session, but all other form data is preserved.
-    setCurrentStep('IDENTITY_INPUT');
-    setFormState((prev) => ({
-      ...prev,
-      verificationId: null,
-      otpValue: '',
-    }));
+    // Drop the user exactly where they left off instead of restarting
+    if (draftStep) {
+      setCurrentStep(draftStep as WizardStep);
+    }
+    // Form state is already loaded in the initial state of useState(draftState ?? initialState)
     setUseLivenessMode(false);
     setIsManualMode(false);
     setShowDraftPrompt(false);
@@ -183,7 +224,11 @@ export function useIndividualSavingsWizard() {
     stepLabels: STEP_LABELS,
     hasDraft,
     showDraftPrompt,
+    stepMessage,
+    setStepMessage,
+    clearStepMessage: () => setStepMessage(null),
     next,
+    previous,
     goTo,
     update,
     switchToManual,

@@ -22,9 +22,9 @@ import { SAVINGS_STEP_DESCRIPTIONS, SAVINGS_RESULT_STEPS } from '@src/constants/
 
 export default function IndividualSavingsPage() {
   const {
-    currentStep, formState, isManualMode, useLivenessMode, progressSteps, stepLabels,
-    next, goTo, update, switchToManual, switchToLiveness, saveDraft, clearDraft,
-    showDraftPrompt, resumeDraft, discardDraft,
+    currentStep, currentIndex, formState, isManualMode, useLivenessMode, progressSteps, stepLabels,
+    next, previous, goTo, update, switchToManual, switchToLiveness, saveDraft, clearDraft,
+    showDraftPrompt, resumeDraft, discardDraft, stepMessage, setStepMessage, clearStepMessage,
   } = useIndividualSavingsWizard();
 
   const { mutate: initiateAccount, isPending: isSubmitting, error: initiateError } = useInitiateAccount();
@@ -43,10 +43,6 @@ export default function IndividualSavingsPage() {
 
   function handleBiodataNext(data: Partial<typeof formState>) {
     update(data);
-    if (useLivenessMode) {
-      submitAccount({ customerPhotoUrl: formState.customerPhotoUrl });
-      return;
-    }
     next();
   }
 
@@ -117,22 +113,22 @@ export default function IndividualSavingsPage() {
       stepLabels={stepLabels}
       stepDescription={SAVINGS_STEP_DESCRIPTIONS[currentStep] ?? ''}
       isComplete={isComplete}
+      stepMessage={stepMessage as any}
+      onClearStepMessage={clearStepMessage}
       onSaveDraft={saveDraft}
+      onBack={currentIndex > 0 ? previous : undefined}
       showDraftPrompt={showDraftPrompt}
       onResumeDraft={resumeDraft}
       onDiscardDraft={discardDraft}
+      onStepClick={(step) => goTo(step as any)}
     >
-      {currentStep === 'IDENTITY_INPUT' && <IdentityInputStep formState={formState} onNext={handleIdentityNext} accountType="SAVINGS" />}
+      {currentStep === 'IDENTITY_INPUT' && <IdentityInputStep formState={formState} onNext={handleIdentityNext} accountType="SAVINGS" setStepMessage={setStepMessage} />}
       {currentStep === 'OTP_VERIFICATION' && (
-        <OtpVerificationStep formState={formState} onNext={handleNext} onManual={switchToManual} onLiveness={switchToLiveness} />
+        <OtpVerificationStep formState={formState} onNext={handleNext} onManual={switchToManual} onLiveness={switchToLiveness} setStepMessage={setStepMessage} />
       )}
-      {currentStep === 'BIODATA_CONFIRMATION' && <BiodataConfirmationStep formState={formState} isManualMode={isManualMode} onNext={handleBiodataNext} />}
+      {currentStep === 'BIODATA_CONFIRMATION' && <BiodataConfirmationStep formState={formState} isManualMode={isManualMode} onNext={handleBiodataNext} setStepMessage={setStepMessage} />}
       {currentStep === 'PHOTO_CAPTURE' && (
-        useLivenessMode ? (
-          <LivenessCheckStep formState={formState} onNext={handleLivenessNext} />
-        ) : (
-          <PhotoCaptureStep formState={formState} onNext={handlePhotoNext} isSubmitting={isSubmitting} />
-        )
+        <PhotoCaptureStep formState={formState} onNext={handlePhotoNext} isSubmitting={isSubmitting} setStepMessage={setStepMessage} />
       )}
       {currentStep === 'TIER1_SUCCESS' && <Tier1SuccessStep formState={formState} onUpgrade={() => goTo('TIER2_UPGRADE')} onFinish={() => { clearDraft(); goTo('COMPLETE'); }} onFailure={() => goTo('TIER1_FAILED')} />}
       {currentStep === 'TIER1_FAILED' && <Tier1FailedStep formState={formState} onRetry={handleRetry} onCancel={handleCancel} />}

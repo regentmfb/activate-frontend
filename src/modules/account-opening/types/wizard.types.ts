@@ -36,13 +36,16 @@ export type CurrentWizardStep =
   | 'FACE_PROCESSING'
   | 'BIODATA_CONFIRMATION'
   | 'LIVENESS_CHECK'
-  | 'ADDITIONAL_INFO'
   | 'PHOTO_CAPTURE'
-  | 'ID_CARD_CAPTURE'
-  | 'LOCATION_VERIFICATION'
   | 'REFERENCE_UPLOAD'
-  | 'SUBMIT_SUCCESS'
-  | 'SUBMIT_FAILED'
+  | 'TIER1_SUCCESS'
+  | 'TIER1_FAILED'
+  | 'TIER2_UPGRADE'
+  | 'TIER2_SUCCESS'
+  | 'TIER2_FAILED'
+  | 'TIER3_UPGRADE'
+  | 'TIER3_SUCCESS'
+  | 'TIER3_FAILED'
   | 'COMPLETE';
 
 export type IndividualCurrentFormState = {
@@ -54,29 +57,29 @@ export type IndividualCurrentFormState = {
   otpValue: string;
   verificationId: string | null;
   biodata: Biodata | null;
-  // Additional info
-  email: string;
-  secondPhone: string;
-  secondaryIdMethod: VerificationMethod | null;
-  secondaryIdValue: string;
-  address: string;
-  // Uploads
   customerPhotoUrl: string | null;
-  customerPhotoFile: File | null;        // actual File for customer photo
   livenessPhotoUrl: string | null;
-  idCardPhotoUrl: string | null;
-  idCardPhotoFile: File | null;          // actual File for ID card
-  signatureFile: File | null;            // actual File for signature
-  bvnNinEvidenceFile: File | null;       // actual File for BVN/NIN verification evidence
-  // Location
-  isProximityConfirmed: boolean | null;
-  proofOfAddressUrl: string | null;
-  locationPhotoUrl: string | null;
-  proofOfAddressFile: File | null;       // actual File for upload
-  locationPhotoFile: File | null;        // actual File for upload
-  gpsCoords: { lat: number; lng: number } | null;
-  // Reference
+  // Tier 1 Extension
   referenceFormUrl: string | null;
+  // Tier 2
+  secondaryIdMethod: string | null;
+  secondaryIdValue: string;
+  idCardPhotoUrl: string | null;
+  // Tier 3
+  isProximityConfirmed: boolean | null;
+  streetNumber?: string;
+  streetName?: string;
+  lga?: string;
+  city?: string;
+  state?: string;
+  landmark?: string;
+  description?: string;
+  address: any;
+  proofOfAddressUrl: string | null;
+  proofOfAddressFile?: File | null;
+  locationPhotoUrl: string | null;
+  locationPhotoFile?: File | null;
+  gpsCoords: { lat: number; lng: number } | null;
   // Result
   accountRequestId: string | null;
   accountNumber: string | null;
@@ -94,14 +97,23 @@ export type IndividualSavingsFormState = {
   customerPhotoUrl: string | null;
   livenessPhotoUrl: string | null;
   // Tier 2
-  secondaryIdMethod: VerificationMethod | null;
+  secondaryIdMethod: string | null;
   secondaryIdValue: string;
   idCardPhotoUrl: string | null;
   // Tier 3
   isProximityConfirmed: boolean | null;
-  address: string;
+  streetNumber?: string;
+  streetName?: string;
+  lga?: string;
+  city?: string;
+  state?: string;
+  landmark?: string;
+  description?: string;
+  address: any;
   proofOfAddressUrl: string | null;
+  proofOfAddressFile?: File | null;
   locationPhotoUrl: string | null;
+  locationPhotoFile?: File | null;
   gpsCoords: { lat: number; lng: number } | null;
   // Result
   accountRequestId: string | null;

@@ -28,7 +28,24 @@ export function validateFile(file: File, options: FileValidationOptions = {}): F
   }
 
   // Check file type
-  if (!acceptedTypes.includes(file.type)) {
+  const extension = getFileExtension(file.name).toLowerCase();
+  
+  // Create a list of allowed extensions based on acceptedTypes
+  const allowedExtensions: string[] = [];
+  acceptedTypes.forEach(t => {
+    if (t.includes('pdf')) allowedExtensions.push('pdf');
+    if (t.includes('msword') || t.includes('wordprocessingml')) {
+      allowedExtensions.push('doc', 'docx');
+    }
+    if (t.includes('image/jpeg')) allowedExtensions.push('jpg', 'jpeg');
+    if (t.includes('image/png')) allowedExtensions.push('png');
+    if (t.includes('image/webp')) allowedExtensions.push('webp');
+    if (t.includes('image/heic')) allowedExtensions.push('heic');
+  });
+
+  const isValidType = acceptedTypes.includes(file.type) || allowedExtensions.includes(extension);
+
+  if (!isValidType) {
     const acceptedExtensions = acceptedTypes
       .map(type => {
         switch (type) {

@@ -16,9 +16,25 @@ export const staffApi = {
   },
 
   getTeamMembers: async (): Promise<TeamMember[]> => {
-    const { data } = await http.get<ApiEnvelope<TeamMember[]>>('/staff/team-members');
-    const result = data.data ?? data;
-    return Array.isArray(result) ? result : [];
+    console.log('--- getTeamMembers CALLED ---');
+    try {
+      const { data } = await http.get<ApiEnvelope<any>>('/staff/team-members');
+      console.log('TEAM MEMBERS RAW PAYLOAD:', data);
+      const result = data.data ?? data;
+      if (Array.isArray(result)) {
+        console.log('--- RETURNING result ---', result);
+        return result;
+      }
+      if (result && Array.isArray(result.data)) {
+        console.log('--- RETURNING result.data ---', result.data);
+        return result.data;
+      }
+      console.log('--- RETURNING [] ---');
+      return [];
+    } catch (error) {
+      console.error('TEAM MEMBERS API ERROR:', error);
+      return [];
+    }
   },
 
   getActivateStaff: async (): Promise<{ teamLeads: any[]; relationshipManagers: any[] }> => {
@@ -27,8 +43,10 @@ export const staffApi = {
   },
 
   getActivityLogs: async (params?: GetActivityLogsParams): Promise<ActivityLog[]> => {
-    const { data } = await http.get<ApiEnvelope<ActivityLog[]>>('/activate/activity-logs', { params });
+    const { data } = await http.get<ApiEnvelope<any>>('/activate/activity-logs', { params });
     const result = data.data ?? data;
-    return Array.isArray(result) ? result : [];
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.data)) return result.data;
+    return [];
   },
 };

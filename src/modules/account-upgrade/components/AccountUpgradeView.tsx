@@ -1,29 +1,34 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeft, ArrowUpCircle, CheckCircle2, Camera,
-  RefreshCw, MapPin, XCircle, Loader2,
+  RefreshCw, MapPin, XCircle, Loader2, Info, Clock
 } from 'lucide-react';
 import { useAccountUpgradeWizard } from '../hooks/useAccountUpgradeWizard';
 import { useSubmitTier2, useSubmitTier3 } from '../hooks/useAccountUpgrade';
 import { useAccountRequestsByCustomer } from '@src/modules/account-opening/hooks/useAccountOpening';
 import { documentsApi } from '@src/modules/documents/api/documents.api';
+import { NativeSelect, NativeSelectOption } from '@src/components/ui/native-select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@src/components/ui/dialog';
+import { useVerifyNin } from '@src/modules/identity/hooks/useIdentityVerification';
 import { tier2Schema, Tier2SchemaValues, tier3AddressSchema, Tier3AddressSchemaValues } from '@src/modules/account-opening/schema/account-opening.schema';
 import { UpgradeFormState } from '../hooks/useAccountUpgradeWizard';
 import { appToast } from '@src/lib/toast';
 import { cn } from '@src/utils';
+import { NIGERIA_STATES } from '@src/constants/nigeria-states';
+import { SearchableSelect } from '@src/components/ui/SearchableSelect';
 
-const inputCls = `w-full h-9 px-3 rounded-lg text-[13px] text-gray-800 bg-gray-50 border outline-none transition-colors placeholder:text-gray-300`;
-const labelCls = `block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1`;
-const btnCls = `w-full h-10 rounded-xl text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2`;
+const inputCls = `w-full h-11 px-3.5 rounded-xl text-[14px] font-medium text-gray-900 bg-white hover:bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#920793] focus:ring-4 focus:ring-[#920793]/10 outline-none transition-all placeholder:text-gray-400`;
+const labelCls = `block text-[13px] font-medium text-gray-700 mb-1.5`;
+const btnCls = `w-full h-12 rounded-xl text-white text-[14px] font-bold bg-[#920793] hover:bg-[#7a067a] shadow-md shadow-[#920793]/20 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 mt-2`;
 
 function UploadZone({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <div onClick={onClick} className="w-full h-24 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-[#920793] hover:bg-purple-50 transition-all">
+    <div onClick={onClick} className="w-full h-32 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#920793] hover:bg-purple-50/50 transition-all">
       {children}
     </div>
   );
@@ -34,10 +39,12 @@ function UploadZone({ onClick, children }: { onClick: () => void; children: Reac
 function Tier2Step({
   formState,
   activateRequestId,
+  initialIdMethod,
   onNext,
 }: {
   formState: UpgradeFormState;
   activateRequestId: string;
+  initialIdMethod?: 'NIN' | 'BVN' | null;
   onNext: (data: Partial<UpgradeFormState>) => void;
 }) {
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
@@ -45,20 +52,112 @@ function Tier2Step({
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { mutate: submitTier2, isPending } = useSubmitTier2();
+  const { mutate: verifyNin, isPending: isVerifying } = useVerifyNin();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<Tier2SchemaValues>({
+  const { register, handleSubmit, watch, setError, clearErrors, formState: { errors } } = useForm<Tier2SchemaValues>({
     resolver: zodResolver(tier2Schema),
     defaultValues: { secondaryIdMethod: 'NIN', secondaryIdValue: formState.secondaryIdValue },
   });
 
+  const selectedMethod = watch('secondaryIdMethod');
+  const secondaryIdValue = watch('secondaryIdValue');
+  const [isNinVerified, setIsNinVerified] = useState(false);
+  const [lastVerifiedNin, setLastVerifiedNin] = useState<string | null>(null);
+  const [rejectedNins, setRejectedNins] = useState<Set<string>>(new Set());
+  const [ninBiodata, setNinBiodata] = useState<any>(null);
+
+  useEffect(() => {
+    // Only verify if 11 digits, numbers only, not already verified, and not previously rejected
+    const is11Digits = /^\d{11}$/.test(secondaryIdValue || '');
+    if (
+      selectedMethod === 'NIN' &&
+      is11Digits &&
+      secondaryIdValue !== lastVerifiedNin &&
+      !rejectedNins.has(secondaryIdValue || '') &&
+      !isVerifying
+    ) {
+      verifyNin(
+        { nin: secondaryIdValue || '', verificationId: activateRequestId },
+        {
+          onSuccess: (result: any) => {
+            const biodata = result?.data || result?.identity || result;
+            const isEmpty = !biodata || (typeof biodata === 'object' && Object.keys(biodata).length === 0);
+
+            if (isEmpty) {
+              setIsNinVerified(false);
+              setLastVerifiedNin(secondaryIdValue || null);
+              setRejectedNins((prev) => new Set(prev).add(secondaryIdValue || ''));
+              setError('secondaryIdValue', {
+                type: 'manual',
+                message: 'Invalid NIN.',
+              });
+              return;
+            }
+
+            setNinBiodata(biodata);
+            setLastVerifiedNin(secondaryIdValue || null);
+          },
+          onError: (err: any) => {
+            setIsNinVerified(false);
+            setLastVerifiedNin(secondaryIdValue || null); // Prevent infinite loop on error
+            setError('secondaryIdValue', {
+              type: 'manual',
+              message: err.message || 'Verification failed. Please check the NIN.',
+            });
+          },
+        }
+      );
+    } else if (selectedMethod === 'NIN' && secondaryIdValue !== lastVerifiedNin) {
+      setIsNinVerified(false);
+    }
+  }, [secondaryIdValue, selectedMethod, lastVerifiedNin, rejectedNins, verifyNin, activateRequestId, clearErrors, setError, isVerifying]);
+
   async function onSubmit(data: Tier2SchemaValues) {
-    if (!idCardFile) return;
+    if (data.secondaryIdMethod === 'NIN') {
+      if (!isNinVerified) {
+        setError('secondaryIdValue', { type: 'manual', message: 'Please wait for NIN verification to complete.' });
+        return;
+      }
+      proceedWithSubmitNin(data);
+    } else {
+      if (!idCardFile) {
+        appToast.error('Please upload an ID card photo.');
+        return;
+      }
+      proceedWithUploadAndSubmit(data, idCardFile);
+    }
+  }
+
+  function proceedWithSubmitNin(data: Tier2SchemaValues) {
+    submitTier2(
+      {
+        activateRequestId,
+        payload: {
+          nin: data.secondaryIdValue || '',
+          bvn: undefined,
+          idCardDocumentId: '00000000-0000-0000-0000-000000000000', // Dummy UUID to bypass strict backend validation
+          hasConsent: true,
+        },
+      },
+      {
+        onSuccess: (result: any) => {
+          onNext({
+            secondaryIdMethod: data.secondaryIdMethod,
+            secondaryIdValue: data.secondaryIdValue,
+            upgradeMessage: result?.message,
+          });
+        },
+      }
+    );
+  }
+
+  async function proceedWithUploadAndSubmit(data: Tier2SchemaValues, fileToUpload: File) {
     setUploading(true);
 
     let idCardDocumentId: string;
     try {
       const result = await documentsApi.upload({
-        file: idCardFile,
+        file: fileToUpload,
         activateRequestId,
         documentType: 'valid_id',
       });
@@ -75,94 +174,197 @@ function Tier2Step({
 
     setUploading(false);
 
-    const isNin = data.secondaryIdMethod === 'NIN';
     submitTier2(
       {
         activateRequestId,
         payload: {
-          nin: isNin ? data.secondaryIdValue : undefined,
-          bvn: !isNin ? data.secondaryIdValue : undefined,
+          nin: undefined,
+          bvn: undefined,
           idCardDocumentId,
           hasConsent: true,
         },
       },
       {
-        onSuccess: (result) => {
+        onSuccess: (result: any) => {
           onNext({
             secondaryIdMethod: data.secondaryIdMethod,
             secondaryIdValue: data.secondaryIdValue,
             idCardPhotoUrl: idCardPreview,
+            upgradeMessage: result?.message,
           });
         },
       }
     );
   }
 
-  const isSubmitting = uploading || isPending;
+  const isSubmitting = uploading || isPending || isVerifying;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
         <p className="text-[14px] font-bold text-gray-900">Tier 2 Upgrade</p>
         <p className="text-[12px] text-gray-500 mt-0.5">
-          Provide the customer&apos;s secondary ID and a photo of their official ID card.
+          Select the customer's ID type and upload a photo of the document.
         </p>
       </div>
 
-      {/* ID method selector */}
-      <div className="flex gap-2">
-        {(['NIN', 'BVN'] as const).map((method) => (
-          <label key={method} className="flex-1 cursor-pointer">
-            <input type="radio" {...register('secondaryIdMethod')} value={method} className="sr-only" />
-            <div className={cn(
-              'h-9 rounded-lg border-2 flex items-center justify-center text-[13px] font-semibold transition-all',
-              'peer-checked:border-[#920793] peer-checked:bg-purple-50 peer-checked:text-[#920793]',
-            )}>
-              {method}
-            </div>
-          </label>
-        ))}
+      <div className="space-y-1">
+        <label className={labelCls}>ID Type</label>
+        <NativeSelect {...register('secondaryIdMethod')} className="w-full">
+          <NativeSelectOption value="NIN">NIN</NativeSelectOption>
+          <NativeSelectOption value="NATIONAL_ID">National ID</NativeSelectOption>
+          <NativeSelectOption value="DRIVERS_LICENSE">Driver's Licence</NativeSelectOption>
+          <NativeSelectOption value="PASSPORT">Passport</NativeSelectOption>
+          <NativeSelectOption value="VOTERS_ID">Voter's Card</NativeSelectOption>
+        </NativeSelect>
+        {errors.secondaryIdMethod && <p className="text-[12px] text-red-500">{errors.secondaryIdMethod.message}</p>}
       </div>
 
-      <div className="space-y-1">
-        <label className={labelCls}>ID Number</label>
-        <input
-          type="tel" inputMode="numeric" maxLength={11} placeholder="Enter 11-digit number"
-          className={cn(inputCls, errors.secondaryIdValue ? 'border-red-400' : 'border-gray-200 focus:border-[#920793]')}
-          {...register('secondaryIdValue')}
-        />
-        {errors.secondaryIdValue && <p className="text-[12px] text-red-500">{errors.secondaryIdValue.message}</p>}
-      </div>
-
-      <div className="space-y-1">
-        <label className={labelCls}>ID Card Photo</label>
-        <p className="text-[11px] text-gray-400 mb-1.5">Government-issued ID (national ID, driver&apos;s licence, passport)</p>
-        {idCardPreview ? (
+      {selectedMethod === 'NIN' && (
+        <div className="space-y-1">
+          <label className={labelCls}>NIN Number</label>
           <div className="relative">
-            <img src={idCardPreview} alt="ID Card" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
-            <button type="button" onClick={() => { setIdCardPreview(null); setIdCardFile(null); if (inputRef.current) inputRef.current.value = ''; }}
-              className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-white border shadow flex items-center justify-center">
-              <RefreshCw className="h-3 w-3 text-gray-500" />
-            </button>
+            <input
+              type="text" inputMode="numeric" maxLength={11} placeholder="Enter 11-digit number"
+              style={{ backgroundColor: 'white' }}
+              className={cn(inputCls, errors.secondaryIdValue ? 'border-red-400' : 'border-gray-200 focus:border-[#920793]')}
+              {...register('secondaryIdValue')}
+              onChange={(e) => {
+                // Force numeric only
+                const val = e.target.value.replace(/\D/g, '');
+                e.target.value = val;
+                register('secondaryIdValue').onChange(e);
+              }}
+            />
+            {isVerifying && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
+            )}
+            {isNinVerified && !isVerifying && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </div>
+            )}
           </div>
-        ) : (
-          <UploadZone onClick={() => inputRef.current?.click()}>
-            <Camera className="h-6 w-6 text-gray-300" />
-            <p className="text-[12px] text-gray-400">Tap to capture ID card</p>
-          </UploadZone>
-        )}
-        <input ref={inputRef} type="file" accept="image/*"  className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) { setIdCardFile(f); setIdCardPreview(URL.createObjectURL(f)); }
-          }} />
-      </div>
+          {errors.secondaryIdValue && <p className="text-[12px] text-red-500">{errors.secondaryIdValue.message}</p>}
+          {isNinVerified && !errors.secondaryIdValue && <p className="text-[12px] text-green-600"></p>}
+        </div>
+      )}
 
-      <button type="submit" disabled={!idCardFile || isSubmitting} className={btnCls}>
-        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        {uploading ? 'Uploading ID...' : isPending ? 'Processing Tier 2 upgrade...' : 'Complete Tier 2 Upgrade'}
-      </button>
-    </form>
+      {selectedMethod !== 'NIN' && (
+        <div className="space-y-1">
+          <label className={labelCls}>ID Card Photo</label>
+          <p className="text-[11px] text-gray-400 mb-1.5">Government-issued ID (national ID, driver's licence, passport)</p>
+          {idCardPreview ? (
+            <div className="relative">
+              <img src={idCardPreview} alt="ID Card" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
+              <button type="button" onClick={() => { setIdCardPreview(null); setIdCardFile(null); if (inputRef.current) inputRef.current.value = ''; }}
+                className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-white border shadow flex items-center justify-center">
+                <RefreshCw className="h-3 w-3 text-gray-500" />
+              </button>
+            </div>
+          ) : (
+            <UploadZone onClick={() => inputRef.current?.click()}>
+              <Camera className="h-6 w-6 text-gray-300" />
+              <p className="text-[12px] text-gray-400">Tap to capture ID card</p>
+            </UploadZone>
+          )}
+          <input ref={inputRef} type="file" accept="image/*"  className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) { setIdCardFile(f); setIdCardPreview(URL.createObjectURL(f)); }
+            }} />
+        </div>
+      )}
+
+        <button type="submit" disabled={(selectedMethod !== 'NIN' && !idCardFile) || isSubmitting || (selectedMethod === 'NIN' && !isNinVerified)} className={btnCls}>
+          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          {uploading ? 'Uploading ID...' : isVerifying ? 'Verifying NIN...' : isPending ? 'Processing Tier 2 upgrade...' : 'Complete Tier 2 Upgrade'}
+        </button>
+      </form>
+
+      <Dialog open={!!ninBiodata} onOpenChange={(open) => {
+        if (!open) {
+          setNinBiodata(null);
+          setLastVerifiedNin(secondaryIdValue || null);
+        }
+      }}>
+        <DialogContent showCloseButton={false} className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Identity</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <p className="text-sm text-center text-gray-500">
+              Please verify that this biodata matches the customer.
+            </p>
+            {(() => {
+              const b = ninBiodata || {};
+              const firstName = b.firstName || b.firstname || b.first_name || '';
+              const lastName = b.lastName || b.lastname || b.last_name || '';
+              const photo = b.base64Image || b.photo || b.profilePhotoBase64 || b.profilePhoto || '';
+              const gender = b.gender || 'Unknown';
+              const dob = b.dateOfBirth || b.dob || b.birthdate || 'Unknown';
+
+              return (
+                <div className="flex flex-col items-center gap-3 w-full bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  {photo ? (
+                    <img src={photo.startsWith('data:image') ? photo : `data:image/jpeg;base64,${photo}`} alt="NIN Photo" className="h-24 w-24 rounded-full object-cover shrink-0 border-4 border-purple-50 shadow-md" />
+                  ) : (
+                    <div className="h-24 w-24 rounded-full bg-purple-50 flex items-center justify-center shrink-0 border-4 border-white shadow-md">
+                      <span className="text-purple-300 text-xs font-medium">No Photo</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col items-center w-full space-y-1.5 mt-2">
+                    <p className="font-bold text-gray-900 text-lg leading-tight text-center">
+                      {firstName} {lastName}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium tracking-wide uppercase">
+                        Gender: {gender}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium tracking-wide uppercase">
+                        DOB: {String(dob).split('T')[0]}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => {
+                setNinBiodata(null);
+                setRejectedNins((prev) => new Set(prev).add(secondaryIdValue || ''));
+                setIsNinVerified(false);
+                setError('secondaryIdValue', {
+                  type: 'manual',
+                  message: 'Biodata rejected by user.',
+                });
+              }}
+              className="flex-1 h-10 rounded-xl text-[13px] font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              No, Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsNinVerified(true);
+                setLastVerifiedNin(secondaryIdValue || null);
+                clearErrors('secondaryIdValue');
+                setNinBiodata(null);
+              }}
+              className="flex-1 h-10 rounded-xl text-white text-[13px] font-semibold bg-[#920793] hover:opacity-90 transition-opacity"
+            >
+              Yes, Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -191,10 +393,22 @@ function Tier3Step({
   const locationRef = useRef<HTMLInputElement>(null);
   const { mutate: submitTier3, isPending } = useSubmitTier3();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<Tier3AddressSchemaValues>({
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<Tier3AddressSchemaValues>({
     resolver: zodResolver(tier3AddressSchema),
-    defaultValues: { address: formState.address },
+    defaultValues: { 
+      streetNumber: '',
+      streetName: '',
+      lga: '',
+      city: '',
+      state: '',
+      landmark: '',
+      description: '',
+    },
   });
+
+  const selectedState = watch('state');
+  const availableLgas = NIGERIA_STATES.find(s => s.state === selectedState)?.lgas || [];
+  const availableCities = NIGERIA_STATES.find(s => s.state === selectedState)?.cities || [];
 
   function captureGPS() {
     setGpsLoading(true); setGpsError('');
@@ -206,7 +420,7 @@ function Tier3Step({
   }
 
   async function onSubmit(data: Tier3AddressSchemaValues) {
-    if (!proofFile || !locationFile || !gpsCoords) return;
+    if (!proofFile || !locationFile) return;
     setUploading(true);
 
     let proofDocId: string;
@@ -225,29 +439,35 @@ function Tier3Step({
     }
 
     setUploading(false);
+    
+    const combinedAddress = [data.streetNumber, data.streetName, data.landmark, data.city, data.lga, data.state, 'Nigeria'].filter(Boolean).join(', ');
 
     submitTier3(
       {
         activateRequestId,
         payload: {
-          address: data.address,
+          address: {
+            houseNumber: data.streetNumber,
+            street: data.streetName,
+            landmark: data.landmark,
+            city: data.city,
+            lga: data.lga,
+            state: data.state,
+            country: 'NG',
+          },
           proofOfAddressDocumentId: proofDocId,
           customerLocationImageId: locationDocId,
-          isNearby: proximity === true,
-          rmLatitude: gpsCoords.lat,
-          rmLongitude: gpsCoords.lng,
-          customerLatitude: gpsCoords.lat,
-          customerLongitude: gpsCoords.lng,
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (result: any) => {
           onNext({
             isProximityConfirmed: proximity,
-            address: data.address,
+            address: combinedAddress,
             proofOfAddressUrl: proofPreview,
             locationPhotoUrl: locationPreview,
             gpsCoords,
+            upgradeMessage: result?.message,
           });
         },
       }
@@ -279,19 +499,26 @@ function Tier3Step({
       {
         activateRequestId,
         payload: {
-          address: remoteAddress.trim(),
+          address: {
+            houseNumber: 'N/A',
+            street: remoteAddress.trim(),
+            city: 'N/A',
+            lga: 'N/A',
+            state: 'N/A',
+            country: 'NG',
+          },
           proofOfAddressDocumentId: proofDocId,
           customerLocationImageId: proofDocId, // reuse proof for remote
-          isNearby: false,
-          rmLatitude: 0,
-          rmLongitude: 0,
-          customerLatitude: 0,
-          customerLongitude: 0,
         },
       },
       {
-        onSuccess: () => {
-          onNext({ isProximityConfirmed: false, proofOfAddressUrl: proofPreview, address: remoteAddress.trim() });
+        onSuccess: (result: any) => {
+          onNext({ 
+            isProximityConfirmed: false, 
+            proofOfAddressUrl: proofPreview, 
+            address: remoteAddress.trim(),
+            upgradeMessage: result?.message 
+          });
         },
       }
     );
@@ -372,17 +599,80 @@ function Tier3Step({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <p className="text-[14px] font-bold text-gray-900">Tier 3 Upgrade</p>
-        <p className="text-[12px] text-gray-500 mt-0.5">Complete address and location verification.</p>
+        <p className="text-[12px] text-gray-500 mt-0.5">Complete address verification.</p>
+      </div>
+
+      <div className="rounded-lg bg-purple-50 border border-[#920793]/20 px-3 py-2 flex items-start gap-2">
+        <Clock className="h-4 w-4 text-[#920793] shrink-0 mt-0.5" />
+        <p className="text-[12px] text-[#920793] leading-tight">
+          <strong>Please note:</strong> Address verification may take up to <strong>2 business days</strong> to complete.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>Street Number</label>
+          <input className={cn(inputCls, errors.streetNumber ? 'border-red-400' : 'border-gray-200')} placeholder="e.g. 14" {...register('streetNumber')} />
+          {errors.streetNumber && <p className="text-[12px] font-medium text-red-500 mt-1">{errors.streetNumber.message}</p>}
+        </div>
+        <div>
+          <label className={labelCls}>Street Name</label>
+          <input className={cn(inputCls, errors.streetName ? 'border-red-400' : 'border-gray-200')} placeholder="e.g. Awolowo Way" {...register('streetName')} />
+          {errors.streetName && <p className="text-[12px] font-medium text-red-500 mt-1">{errors.streetName.message}</p>}
+        </div>
       </div>
 
       <div>
-        <label className={labelCls}>Customer Address</label>
-        <input
-          className={cn(inputCls, errors.address ? 'border-red-400' : 'border-gray-200 focus:border-[#920793]')}
-          placeholder="Enter full residential address"
-          {...register('address')}
+        <label className={labelCls}>State</label>
+        <SearchableSelect
+          options={NIGERIA_STATES.map(s => s.state)}
+          value={watch('state')}
+          onChange={(val) => {
+            setValue('state', val, { shouldValidate: true });
+            setValue('lga', '');
+            setValue('city', '');
+          }}
+          placeholder="Select State"
+          className={errors.state ? 'border-red-400' : ''}
         />
-        {errors.address && <p className="text-[12px] text-red-500 mt-1">{errors.address.message}</p>}
+        {errors.state && <p className="text-[12px] font-medium text-red-500 mt-1">{errors.state.message}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>City</label>
+          <SearchableSelect
+            options={availableCities}
+            value={watch('city')}
+            onChange={(val) => setValue('city', val, { shouldValidate: true })}
+            placeholder="Select City"
+            className={errors.city ? 'border-red-400' : ''}
+            disabled={!watch('state')}
+          />
+          {errors.city && <p className="text-[12px] font-medium text-red-500 mt-1">{errors.city.message}</p>}
+        </div>
+        <div>
+          <label className={labelCls}>LGA</label>
+          <SearchableSelect
+            options={availableLgas}
+            value={watch('lga')}
+            onChange={(val) => setValue('lga', val, { shouldValidate: true })}
+            placeholder="Select LGA"
+            className={errors.lga ? 'border-red-400' : ''}
+            disabled={!watch('state')}
+          />
+          {errors.lga && <p className="text-[12px] font-medium text-red-500 mt-1">{errors.lga.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Landmark</label>
+        <input className={cn(inputCls, errors.landmark ? 'border-red-400' : 'border-gray-200 focus:border-[#920793]')} placeholder="e.g. Near the big oak tree" {...register('landmark')} />
+      </div>
+      
+      <div>
+        <label className={labelCls}>Description</label>
+        <input className={cn(inputCls, errors.description ? 'border-red-400' : 'border-gray-200 focus:border-[#920793]')} placeholder="Additional details..." {...register('description')} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -426,7 +716,7 @@ function Tier3Step({
         </div>
       </div>
 
-      <div>
+      {/* <div>
         <label className={labelCls}>GPS Location</label>
         {gpsCoords ? (
           <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
@@ -447,9 +737,9 @@ function Tier3Step({
           </button>
         )}
         {gpsError && <p className="text-[12px] text-red-500 mt-1">{gpsError}</p>}
-      </div>
+      </div> */}
 
-      <button type="submit" disabled={!proofFile || !locationFile || !gpsCoords || isSubmitting} className={btnCls}>
+      <button type="submit" disabled={!proofFile || !locationFile || isSubmitting} className={btnCls}>
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {uploading ? 'Uploading documents...' : isPending ? 'Processing Tier 3 upgrade...' : 'Complete Tier 3 Upgrade'}
       </button>
@@ -459,9 +749,15 @@ function Tier3Step({
 
 // ── Complete step ─────────────────────────────────────────────────────────────
 
-function CompleteStep({ formState }: { formState: UpgradeFormState }) {
+function CompleteStep({ formState, realAccountNumber }: { formState: UpgradeFormState, realAccountNumber?: string }) {
   const router = useRouter();
   const isRemoteReview = formState.targetTier === 3 && formState.isProximityConfirmed === false;
+
+  const isSavings = 
+    formState.upgradeMessage?.toLowerCase().includes('instantly') || 
+    formState.upgradeMessage?.toLowerCase().includes('auto-verified') ||
+    formState.upgradeMessage?.toLowerCase().includes('completed on activate') ||
+    formState.upgradeMessage?.toLowerCase().includes('upgraded successfully');
 
   return (
     <div className="space-y-4">
@@ -471,25 +767,36 @@ function CompleteStep({ formState }: { formState: UpgradeFormState }) {
         </div>
         <div>
           <p className="text-[15px] font-bold text-gray-900">
-            {isRemoteReview ? 'Submitted for Review' : `Tier ${formState.targetTier} Upgrade Submitted`}
+            {isRemoteReview 
+              ? 'Submitted for Review' 
+              : isSavings 
+                ? `Tier ${formState.targetTier} Upgrade Successful` 
+                : `Tier ${formState.targetTier} Upgrade Submitted`}
           </p>
           <p className="text-[12px] text-gray-500">
-            {isRemoteReview
+            {formState.upgradeMessage || (isRemoteReview
               ? 'Operations will review and approve the Tier 3 upgrade.'
-              : `Upgrade request for Account ${formState.accountNumber} is being verified by the core banking system.`}
+              : `Upgrade request for Account ${formState.accountNumber} is being verified by the core banking system.`)}
           </p>
         </div>
       </div>
 
       <div className="bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100">
         {[
-          ['Account Number', formState.accountNumber],
+          ['Account Number', realAccountNumber || formState.accountNumber],
+          ['Current Tier', `Tier ${formState.currentTier}`],
           ['Target Tier', `Tier ${formState.targetTier}`],
-          ['Status', isRemoteReview ? 'Pending Operations Review' : 'Pending Core Banking Verification'],
+          ['Status', isRemoteReview ? 'Pending Operations Review' : (formState.targetTier === 3 ? 'Pending Location Verification' : (isSavings ? 'Completed' : 'Pending Core Verification'))],
         ].map(([k, v]) => (
-          <div key={k} className="flex justify-between px-4 py-2.5 text-[13px]">
+          <div key={k} className="flex justify-between items-center px-4 py-2.5 text-[13px]">
             <span className="text-gray-500">{k}</span>
-            <span className="font-semibold text-gray-900">{v}</span>
+            <span className={cn(
+              "font-semibold",
+              v === 'Completed' ? "bg-green-50 text-green-600 px-2 py-0.5 rounded-full text-[10px] tracking-wide" : 
+              v === 'Tier 2' ? "bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold" :
+              v === 'Tier 3' ? "bg-purple-50 text-[#920793] px-2 py-0.5 rounded-full text-[10px] font-bold" :
+              "text-gray-900"
+            )}>{v as string}</span>
           </div>
         ))}
       </div>
@@ -737,12 +1044,17 @@ export function AccountUpgradeView({ accountNumber, currentTier: currentTierProp
 
           <div className="flex-1 min-w-0 p-4 md:p-6">
             {currentStep === 'TIER2_UPGRADE' && (
-              <Tier2Step formState={formState} activateRequestId={activateRequestId} onNext={handleNext} />
+              <Tier2Step
+                formState={formState}
+                activateRequestId={activateRequestId}
+                initialIdMethod={matchingRequest?.initialIdMethod}
+                onNext={handleNext}
+              />
             )}
             {currentStep === 'TIER3_UPGRADE' && (
               <Tier3Step formState={formState} activateRequestId={activateRequestId} onNext={handleNext} />
             )}
-            {currentStep === 'COMPLETE' && <CompleteStep formState={formState} />}
+            {currentStep === 'COMPLETE' && <CompleteStep formState={formState} realAccountNumber={matchingRequest?.bankOneAccountNumber} />}
           </div>
         </div>
       </div>

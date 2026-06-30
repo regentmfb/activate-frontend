@@ -35,6 +35,7 @@ export type AccountRequest = {
   createdAt: string;
   submittedAt?: string;
   cancelledAt?: string;
+  initialIdMethod?: 'NIN' | 'BVN';
 };
 
 export type InitiateAccountPayload = {

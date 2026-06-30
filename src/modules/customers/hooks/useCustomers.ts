@@ -102,11 +102,11 @@ export function useCustomers() {
 
 // ── Customer detail ───────────────────────────────────────────────────────────
 
-export function useCustomerById(id: string, revealToken?: string) {
+export function useCustomerById(id: string, revealToken?: string, accountId?: string) {
   const { data: customer, isLoading, error } = useQuery({
-    queryKey: CUSTOMERS_QUERY_KEYS.detail(id, revealToken),
+    queryKey: ['customers', id, revealToken ?? 'masked', accountId ?? 'primary'],
     queryFn: async () => {
-      const result = await customersApi.getCustomerById(id, revealToken);
+      const result = await customersApi.getCustomerById(id, revealToken, accountId);
       return result;
     },
     enabled: !!id,

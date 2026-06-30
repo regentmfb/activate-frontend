@@ -43,12 +43,15 @@ export type Tier2UpgradePayload = {
 // ── Tier 3 payload ────────────────────────────────────────────────────────────
 
 export type Tier3UpgradePayload = {
-  address: string;
+  address: {
+    houseNumber: string;
+    street: string;
+    landmark?: string;
+    city: string;
+    lga: string;
+    state: string;
+    country?: string;
+  };
   proofOfAddressDocumentId: string;
   customerLocationImageId: string;
-  isNearby: boolean;
-  rmLatitude: number;
-  rmLongitude: number;
-  customerLatitude: number;
-  customerLongitude: number;
 };

@@ -20,6 +20,8 @@ export type VerifiedFields = {
   dateOfBirth: string;
   gender: string;
   address?: string;
+  photo?: string;
+  photoUrl?: string;
 };
 
 export type VerificationSession = {
@@ -31,6 +33,7 @@ export type VerificationSession = {
   provider?: string;
   verifiedFields?: VerifiedFields;
   manualModeReason?: string;
+  selfieImageUrl?: string;
   initiatedBy?: {
     staffId: string;
     staffName: string;

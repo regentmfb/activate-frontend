@@ -24,8 +24,9 @@ export const customersApi = {
     return data.data;
   },
 
-  getCustomerById: async (id: string, revealToken?: string): Promise<CustomerDetailResponse> => {
-    const { data } = await http.get<ApiEnvelope<CustomerDetailResponse>>(`/activate/customers/${id}`, {
+  getCustomerById: async (id: string, revealToken?: string, accountId?: string): Promise<CustomerDetailResponse> => {
+    const url = accountId ? `/activate/customers/${id}?accountId=${accountId}` : `/activate/customers/${id}`;
+    const { data } = await http.get<ApiEnvelope<CustomerDetailResponse>>(url, {
       headers: revealToken ? { 'x-reveal-token': revealToken } : {},
     });
     console.log('[customersApi] getCustomerById returning:', data);

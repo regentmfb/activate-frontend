@@ -7,13 +7,13 @@ type Props = {
   currentStep: CurrentWizardStep;
 };
 
-const LABELS: Record<CurrentWizardStep, string> = {
+const LABELS: Record<string, string> = {
   IDENTITY_INPUT: 'Identity',
   OTP_VERIFICATION: 'Verify OTP',
   FACE_PROCESSING: 'Face Match',
   LIVENESS_CHECK: 'Liveness Check',
   BIODATA_CONFIRMATION: 'Biodata',
-  ADDITIONAL_INFO: 'More Info',
+  // ADDITIONAL_INFO: 'More Info',
   PHOTO_CAPTURE: 'Photo',
   ID_CARD_CAPTURE: 'ID Card',
   LOCATION_VERIFICATION: 'Location',

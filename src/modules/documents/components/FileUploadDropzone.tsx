@@ -60,7 +60,20 @@ export function FileUploadDropzone({
 
   const getAcceptAttribute = () => {
     if (!validationOptions?.acceptedTypes) return undefined;
-    return validationOptions.acceptedTypes.join(',');
+    
+    const extensions = validationOptions.acceptedTypes.flatMap(t => {
+      if (t === 'application/pdf') return ['.pdf'];
+      if (t === 'application/msword') return ['.doc'];
+      if (t === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return ['.docx'];
+      if (t === 'image/jpeg') return ['.jpg', '.jpeg'];
+      if (t === 'image/png') return ['.png'];
+      if (t === 'image/webp') return ['.webp'];
+      if (t === 'image/heic') return ['.heic'];
+      return [];
+    });
+    
+    // Combine MIME types with specific extensions for OS file pickers
+    return [...validationOptions.acceptedTypes, ...extensions].join(',');
   };
 
   const getMaxSizeText = () => {

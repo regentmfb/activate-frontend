@@ -39,10 +39,9 @@ export function useSubmitTier2() {
   return useMutation({
     mutationFn: ({ activateRequestId, payload }: { activateRequestId: string; payload: Tier2UpgradePayload }) =>
       accountUpgradeApi.submitTier2(activateRequestId, payload),
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['tier-upgrades'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      appToast.success('Tier 2 upgrade submitted. Pending core banking verification.');
     },
     onError: (err: Error) => {
       appToast.error(err.message || 'Failed to submit Tier 2 upgrade');
@@ -58,10 +57,9 @@ export function useSubmitTier3() {
   return useMutation({
     mutationFn: ({ activateRequestId, payload }: { activateRequestId: string; payload: Tier3UpgradePayload }) =>
       accountUpgradeApi.submitTier3(activateRequestId, payload),
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['tier-upgrades'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      appToast.success('Tier 3 upgrade submitted. Pending verification.');
     },
     onError: (err: Error) => {
       appToast.error(err.message || 'Failed to submit Tier 3 upgrade');

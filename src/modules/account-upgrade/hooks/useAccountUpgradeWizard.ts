@@ -15,7 +15,7 @@ export type UpgradeFormState = {
   currentTier: number;
   targetTier: number;
   // Tier 2
-  secondaryIdMethod: 'BVN' | 'NIN' | null;
+  secondaryIdMethod: string | null;
   secondaryIdValue: string;
   idCardPhotoUrl: string | null;
   // Tier 3
@@ -24,6 +24,7 @@ export type UpgradeFormState = {
   proofOfAddressUrl: string | null;
   locationPhotoUrl: string | null;
   gpsCoords: { lat: number; lng: number } | null;
+  upgradeMessage?: string;
 };
 
 export function useAccountUpgradeWizard(accountNumber: string, currentTier: number) {

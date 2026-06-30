@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Lock, LogOut, User, Shield, Bell, HelpCircle } from 'lucide-react';
+import { ChevronRight, Lock, LogOut, User, Shield, Bell, HelpCircle, Server } from 'lucide-react';
 import { useAuthStore } from '@src/store/auth.store';
 import { useAuth } from '@src/modules/auth/hooks/useAuth';
 import { cn } from '@src/utils';
@@ -78,6 +78,12 @@ export function SettingsView() {
     { icon: LogOut,     label: 'Logout',         description: 'Sign out of your Activate account',            action: logout, danger: true },
   ];
 
+  const isAdminOrOps = ['SUPER_ADMIN', 'OPERATIONS', 'INTERNAL_CONTROL'].includes(getPrimaryRole());
+
+  const SYSTEM_ITEMS: SettingsItem[] = [
+    { icon: Server,     label: 'Core Sync',      description: 'Manage and retry failed webhooks to Regent Core', href: '/settings/core-sync' },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -114,6 +120,16 @@ export function SettingsView() {
         </div>
         {SUPPORT_ITEMS.map((item) => <SettingsRow key={item.label} item={item} />)}
       </div>
+
+      {/* System & Admin */}
+      {isAdminOrOps && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">System & Admin</p>
+          </div>
+          {SYSTEM_ITEMS.map((item) => <SettingsRow key={item.label} item={item} />)}
+        </div>
+      )}
 
       <p className="text-center text-[12px] text-gray-400">RegentMFB Activate · Version 1.0.0</p>
     </div>

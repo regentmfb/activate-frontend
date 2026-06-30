@@ -68,4 +68,9 @@ export const identityApi = {
     const { data } = await http.post<ApiEnvelope<{ sessionId: string; sdkSessionToken: string }>>(`/identity/${id}/qoreid-session`);
     return data.data;
   },
+
+  verifyNin: async (payload: { nin: string; verificationId: string }): Promise<any> => {
+    const { data } = await http.post<ApiEnvelope<any>>('/identity/nin-verify', payload);
+    return data.data ?? data;
+  },
 };
